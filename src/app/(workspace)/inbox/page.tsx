@@ -2,10 +2,8 @@ import type { Metadata } from "next";
 import { MessageSquareText } from "lucide-react";
 
 import { ConversationWorkspace } from "@/components/inbox/conversation-workspace";
-import {
-  defaultOrganizationId,
-  getConversationRepository,
-} from "@/lib/conversations/repository";
+import { requirePageAuth } from "@/lib/auth/context";
+import { getConversationRepository } from "@/lib/conversations/repository";
 
 export const metadata: Metadata = {
   title: "会话工作台",
@@ -14,8 +12,9 @@ export const metadata: Metadata = {
 export const dynamic = "force-dynamic";
 
 export default async function InboxPage() {
+  const { user } = await requirePageAuth("conversation.read");
   const conversations = await getConversationRepository().list(
-    defaultOrganizationId,
+    user.organizationId,
   );
 
   if (conversations.length === 0) {

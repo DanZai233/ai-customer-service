@@ -5,6 +5,7 @@ import { AssistantPanel } from "@/components/ai/assistant-panel";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Separator } from "@/components/ui/separator";
+import { requirePageAuth } from "@/lib/auth/context";
 
 export const metadata: Metadata = {
   title: "AI 助手",
@@ -16,7 +17,8 @@ const safeguards = [
   "不承诺未经业务系统确认的时间和赔付",
 ];
 
-export default function AiPage() {
+export default async function AiPage() {
+  await requirePageAuth("ai.use");
   return (
     <div className="h-full overflow-auto bg-muted/15 p-4 sm:p-6">
       <div className="mx-auto max-w-7xl">

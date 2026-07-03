@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 
 import { SystemSettings } from "@/components/operations/system-settings";
 import { getAiProviderStatus } from "@/lib/ai/provider";
+import { requirePageAuth } from "@/lib/auth/context";
 import { getDataMode } from "@/lib/conversations/repository";
 
 export const metadata: Metadata = {
@@ -10,7 +11,8 @@ export const metadata: Metadata = {
 
 export const dynamic = "force-dynamic";
 
-export default function SettingsPage() {
+export default async function SettingsPage() {
+  await requirePageAuth("settings.read");
   return (
     <SystemSettings
       systemStatus={{ ai: getAiProviderStatus(), dataMode: getDataMode() }}

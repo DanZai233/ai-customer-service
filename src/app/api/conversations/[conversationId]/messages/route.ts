@@ -1,6 +1,6 @@
 import { apiErrorResponse } from "@/lib/api-response";
+import { authorizeRequest } from "@/lib/auth/context";
 import {
-  defaultOrganizationId,
   getConversationRepository,
   getDataMode,
 } from "@/lib/conversations/repository";
@@ -11,10 +11,15 @@ export async function POST(
   { params }: { params: Promise<{ conversationId: string }> },
 ) {
   try {
+    const authorization = await authorizeRequest(
+      request,
+      "conversation.respond",
+    );
+    if (!authorization.authorized) return authorization.response;
     const { conversationId } = await params;
     const message = newMessageSchema.parse(await request.json());
     const conversation = await getConversationRepository().addMessage(
-      defaultOrganizationId,
+      authorization.context.user.organizationId,
       conversationId,
       message,
     );

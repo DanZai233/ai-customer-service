@@ -1,9 +1,13 @@
 import { AppShell } from "@/components/app-shell";
+import { requirePageAuth } from "@/lib/auth/context";
 
-export default function WorkspaceLayout({
+export const dynamic = "force-dynamic";
+
+export default async function WorkspaceLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  return <AppShell>{children}</AppShell>;
+  const { user } = await requirePageAuth();
+  return <AppShell user={user}>{children}</AppShell>;
 }

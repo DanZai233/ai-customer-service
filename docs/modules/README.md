@@ -14,6 +14,7 @@
 | 系统设置   | [08-settings.md](08-settings.md)             | 运行状态已接入         |
 | 数据后端   | [09-backend-data.md](09-backend-data.md)     | PostgreSQL 已运行      |
 | 部署运维   | [10-deployment.md](10-deployment.md)         | Docker/CI 已运行       |
+| 认证与权限 | [11-auth-rbac.md](11-auth-rbac.md)           | 已实现                 |
 
 ## 状态定义
 

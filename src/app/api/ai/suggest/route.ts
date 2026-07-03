@@ -7,6 +7,7 @@ import {
 } from "ai";
 
 import { getAiModel } from "@/lib/ai/provider";
+import { authorizeRequest } from "@/lib/auth/context";
 import { buildKnowledgeContext } from "@/lib/knowledge-data";
 
 export const maxDuration = 30;
@@ -41,6 +42,9 @@ function demoSuggestion(query: string, context: string) {
 }
 
 export async function POST(request: Request) {
+  const authorization = await authorizeRequest(request, "ai.use");
+  if (!authorization.authorized) return authorization.response;
+
   const { messages }: { messages: UIMessage[] } = await request.json();
   const query = latestUserText(messages);
   const context = buildKnowledgeContext(query);

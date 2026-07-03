@@ -26,6 +26,8 @@ flowchart LR
 - `src/app/api/conversations`：会话、状态和消息写入 API。
 - `src/db/schema.ts`：PostgreSQL 多租户数据模型。
 - `src/lib/conversations`：PostgreSQL/演示双仓储实现与输入校验。
+- `src/lib/auth`：自托管认证、租户上下文与角色权限。
+- `src/app/api/auth`：Better Auth 登录和会话接口。
 - `src/lib/ai/provider.ts`：OpenAI 兼容模型适配器。
 - `src/lib/knowledge-data.ts`：演示检索内核；后续可替换为 RAGFlow、FastGPT 或向量数据库。
 
@@ -35,7 +37,7 @@ flowchart LR
 2. 将本地关键词检索替换为 FastGPT/RAGFlow API 或 pgvector 混合检索。
 3. 通过 Chatwoot Webhook/API 或自建渠道网关接入真实消息。
 4. 对 Webhook 加签名验证、幂等键、重试队列和死信处理。
-5. 接入组织级认证、RBAC、密钥托管、审计日志和数据保留策略。
+5. 组织级认证和 RBAC 已接入；仍需密钥托管、登录审计、SSO 和数据保留策略。
 
 ## AI 安全策略
 

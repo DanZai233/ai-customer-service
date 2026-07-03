@@ -19,6 +19,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
+import { requirePageAuth } from "@/lib/auth/context";
 
 export const metadata: Metadata = {
   title: "数据分析",
@@ -81,7 +82,8 @@ const queues = [
   },
 ];
 
-export default function AnalyticsPage() {
+export default async function AnalyticsPage() {
+  await requirePageAuth("analytics.read");
   return (
     <div className="h-full overflow-auto bg-muted/15 p-4 sm:p-6">
       <div className="mx-auto max-w-7xl">

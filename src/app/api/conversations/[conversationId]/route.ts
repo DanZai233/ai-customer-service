@@ -1,6 +1,6 @@
 import { apiErrorResponse } from "@/lib/api-response";
+import { authorizeRequest } from "@/lib/auth/context";
 import {
-  defaultOrganizationId,
   getConversationRepository,
   getDataMode,
 } from "@/lib/conversations/repository";
@@ -11,10 +11,15 @@ export async function PATCH(
   { params }: { params: Promise<{ conversationId: string }> },
 ) {
   try {
+    const authorization = await authorizeRequest(
+      request,
+      "conversation.manage",
+    );
+    if (!authorization.authorized) return authorization.response;
     const { conversationId } = await params;
     const patch = conversationPatchSchema.parse(await request.json());
     const conversation = await getConversationRepository().update(
-      defaultOrganizationId,
+      authorization.context.user.organizationId,
       conversationId,
       patch,
     );

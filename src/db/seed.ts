@@ -1,4 +1,7 @@
+import { eq } from "drizzle-orm";
+
 import { getDatabase, closeDatabase } from "./client";
+import { user as authUser } from "./auth-schema";
 import {
   conversations as conversationTable,
   customers,
@@ -7,6 +10,7 @@ import {
   organizations,
 } from "./schema";
 import { conversations as demoConversations } from "../lib/demo-data";
+import { getAuth } from "../lib/auth/server";
 
 const organizationId = "org-luma";
 
@@ -102,6 +106,32 @@ async function seed() {
       }
     }
   });
+
+  const adminEmail = process.env.AUTH_SEED_EMAIL?.trim();
+  const adminPassword = process.env.AUTH_SEED_PASSWORD;
+  if (adminEmail && adminPassword) {
+    const existingAdmin = await db
+      .select({ id: authUser.id })
+      .from(authUser)
+      .where(eq(authUser.email, adminEmail))
+      .limit(1);
+
+    if (existingAdmin.length === 0) {
+      process.env.AUTH_ALLOW_SIGN_UP = "true";
+      const created = await getAuth().api.signUpEmail({
+        body: {
+          name: "系统管理员",
+          email: adminEmail,
+          password: adminPassword,
+        },
+      });
+      await db
+        .update(authUser)
+        .set({ role: "owner", organizationId })
+        .where(eq(authUser.id, created.user.id));
+      console.log(`Seeded owner account ${adminEmail}.`);
+    }
+  }
 
   console.log(`Seeded ${demoConversations.length} conversations.`);
 }

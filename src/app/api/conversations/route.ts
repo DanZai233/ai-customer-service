@@ -1,16 +1,18 @@
+import { apiErrorResponse } from "@/lib/api-response";
+import { authorizeRequest } from "@/lib/auth/context";
 import {
-  defaultOrganizationId,
   getConversationRepository,
   getDataMode,
 } from "@/lib/conversations/repository";
-import { apiErrorResponse } from "@/lib/api-response";
 
 export const dynamic = "force-dynamic";
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
+    const authorization = await authorizeRequest(request, "conversation.read");
+    if (!authorization.authorized) return authorization.response;
     const conversations = await getConversationRepository().list(
-      defaultOrganizationId,
+      authorization.context.user.organizationId,
     );
     return Response.json({ data: conversations, mode: getDataMode() });
   } catch (error) {
