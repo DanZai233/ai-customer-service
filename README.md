@@ -41,6 +41,8 @@ npm run build
 
 详细边界和生产化替换点参见 [系统架构](docs/architecture.md)、[外部服务接入](docs/integrations.md) 与 [大模型配置](docs/model-configuration.md)。
 
+各功能的职责、代码入口、API、验收方式和后续边界参见 [模块说明目录](docs/modules/README.md)。
+
 ## Docker
 
 ```bash
