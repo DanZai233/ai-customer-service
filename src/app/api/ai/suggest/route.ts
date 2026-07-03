@@ -53,8 +53,9 @@ export async function POST(request: Request) {
         const id = crypto.randomUUID();
         writer.write({ type: "text-start", id });
 
-        const chunks = Array.from({ length: Math.ceil(text.length / 16) }, (_, index) =>
-          text.slice(index * 16, (index + 1) * 16),
+        const chunks = Array.from(
+          { length: Math.ceil(text.length / 16) },
+          (_, index) => text.slice(index * 16, (index + 1) * 16),
         );
         for (const chunk of chunks) {
           writer.write({ type: "text-delta", id, delta: chunk });

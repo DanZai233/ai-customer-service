@@ -28,11 +28,21 @@ npm test
 npm run build
 ```
 
-## 模块路线
+## 已实现模块
 
-1. 工程基座与设计系统
-2. 多渠道会话工作台与人工接管
-3. AI 回复、知识库与业务工具
-4. 运营分析、渠道配置与团队管理
+- 多渠道会话队列、聊天工作台和客户资料
+- AI/人工接管、回复发送和 AI 草稿
+- 知识管理、检索测试和草稿发布边界
+- AI SDK 6 流式回复接口与 OpenAI 兼容模型适配
+- 数据分析、渠道配置、团队负载和系统设置
+- Docker、健康检查与 GitHub Actions CI
 
-详细边界和数据流将在后续模块中补充到 `docs/`。
+详细边界和生产化替换点参见 [系统架构](docs/architecture.md) 与 [外部服务接入](docs/integrations.md)。
+
+## Docker
+
+```bash
+docker compose up --build
+```
+
+服务启动后访问 [http://localhost:3000](http://localhost:3000)，探活地址为 `/api/health`。
