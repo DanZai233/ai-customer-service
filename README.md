@@ -36,8 +36,9 @@ npm run build
 - AI SDK 6 流式回复接口与 OpenAI 兼容模型适配
 - 数据分析、渠道配置、团队负载和系统设置
 - Docker、健康检查与 GitHub Actions CI
+- PostgreSQL 持久化、Drizzle SQL 迁移与会话读写 API
 
-详细边界和生产化替换点参见 [系统架构](docs/architecture.md) 与 [外部服务接入](docs/integrations.md)。
+详细边界和生产化替换点参见 [系统架构](docs/architecture.md)、[外部服务接入](docs/integrations.md) 与 [大模型配置](docs/model-configuration.md)。
 
 ## Docker
 
@@ -45,4 +46,4 @@ npm run build
 docker compose up --build
 ```
 
-服务启动后访问 [http://localhost:3000](http://localhost:3000)，探活地址为 `/api/health`。
+该命令会启动 PostgreSQL、执行迁移和种子脚本，再启动 Web 服务。随后访问 [http://localhost:3000](http://localhost:3000)，探活地址为 `/api/health`。

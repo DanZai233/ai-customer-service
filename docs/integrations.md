@@ -12,6 +12,19 @@ AI_MODEL=your-model-id
 
 未配置时 `/api/ai/suggest` 自动进入演示模式，方便本地开发和界面验收。
 
+DeepSeek、通义千问和 Ollama 的完整样例参见 [大模型配置](model-configuration.md)。
+
+## PostgreSQL
+
+设置 `DATABASE_URL` 后，收件箱会使用 PostgreSQL 仓储。首次运行：
+
+```bash
+npm run db:migrate
+npm run db:seed
+```
+
+不设置 `DATABASE_URL` 时使用内存演示仓储，仅适合界面开发。Docker Compose 会自动启动数据库、执行迁移和种子脚本。
+
 ## Chatwoot
 
 建议使用一个独立渠道适配服务完成以下数据流：

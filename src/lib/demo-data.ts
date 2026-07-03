@@ -1,43 +1,12 @@
-export type Channel = "web" | "wechat" | "email";
+import type { Conversation } from "@/lib/conversations/types";
 
-export type ConversationStatus = "open" | "pending" | "resolved";
-
-export type Message = {
-  id: string;
-  role: "customer" | "assistant" | "agent" | "system";
-  content: string;
-  time: string;
-  sender?: string;
-};
-
-export type Conversation = {
-  id: string;
-  customer: {
-    name: string;
-    initials: string;
-    phone: string;
-    email: string;
-    city: string;
-    plan: string;
-    since: string;
-  };
-  channel: Channel;
-  status: ConversationStatus;
-  priority: "normal" | "high";
-  unread: number;
-  lastMessage: string;
-  updatedAt: string;
-  assignee: string;
-  tags: string[];
-  aiManaged: boolean;
-  order?: {
-    id: string;
-    amount: string;
-    status: string;
-    placedAt: string;
-  };
-  messages: Message[];
-};
+export type {
+  Channel,
+  Conversation,
+  ConversationStatus,
+  Message,
+  MessageRole,
+} from "@/lib/conversations/types";
 
 export const conversations: Conversation[] = [
   {

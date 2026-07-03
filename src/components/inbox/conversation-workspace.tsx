@@ -43,10 +43,10 @@ import {
 } from "@/components/ui/sheet";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  conversations as initialConversations,
-  type Conversation,
-} from "@/lib/demo-data";
+import type {
+  Conversation,
+  ConversationPatch,
+} from "@/lib/conversations/types";
 import { cn } from "@/lib/utils";
 
 const channelMeta = {
@@ -78,7 +78,11 @@ function ConversationList({
           <div>
             <h1 className="text-base font-semibold">会话收件箱</h1>
             <p className="mt-0.5 text-xs text-muted-foreground">
-              4 个待处理会话
+              {
+                conversations.filter((item) => item.status !== "resolved")
+                  .length
+              }{" "}
+              个待处理会话
             </p>
           </div>
           <Button variant="outline" size="icon-sm" aria-label="更多会话操作">
@@ -293,11 +297,28 @@ function CustomerPanel({ conversation }: { conversation: Conversation }) {
   );
 }
 
-export function ConversationWorkspace() {
+async function parseConversationResponse(response: Response) {
+  const payload = (await response.json()) as {
+    data?: Conversation;
+    error?: string;
+  };
+  if (!response.ok || !payload.data) {
+    throw new Error(payload.error ?? "操作失败，请稍后重试");
+  }
+  return payload.data;
+}
+
+export function ConversationWorkspace({
+  initialConversations,
+}: {
+  initialConversations: Conversation[];
+}) {
   const [conversations, setConversations] = useState(initialConversations);
   const [selectedId, setSelectedId] = useState(initialConversations[0].id);
   const [draft, setDraft] = useState("");
   const [mobileListOpen, setMobileListOpen] = useState(false);
+  const [pendingAction, setPendingAction] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   const selected = useMemo(
     () =>
@@ -306,32 +327,101 @@ export function ConversationWorkspace() {
     [conversations, selectedId],
   );
 
+  function replaceConversation(updated: Conversation) {
+    setConversations((current) =>
+      current.map((conversation) =>
+        conversation.id === updated.id ? updated : conversation,
+      ),
+    );
+  }
+
+  async function patchConversation(
+    conversationId: string,
+    patch: ConversationPatch,
+  ) {
+    const response = await fetch(`/api/conversations/${conversationId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(patch),
+    });
+    return parseConversationResponse(response);
+  }
+
   function selectConversation(id: string) {
     setSelectedId(id);
+    const unread = conversations.find((item) => item.id === id)?.unread ?? 0;
     setConversations((current) =>
       current.map((conversation) =>
         conversation.id === id ? { ...conversation, unread: 0 } : conversation,
       ),
     );
+    if (unread > 0) {
+      void patchConversation(id, { unread: 0 })
+        .then(replaceConversation)
+        .catch((requestError: Error) => setError(requestError.message));
+    }
   }
 
-  function toggleAiManaged() {
+  async function toggleAiManaged() {
+    const previous = selected;
+    const nextAiManaged = !selected.aiManaged;
+    const optimistic = {
+      ...selected,
+      aiManaged: nextAiManaged,
+      assignee: nextAiManaged ? "Luma AI" : "周宁",
+    };
+    replaceConversation(optimistic);
+    setError(null);
+    setPendingAction("handoff");
+
+    try {
+      const updated = await patchConversation(selected.id, {
+        aiManaged: nextAiManaged,
+        assignee: optimistic.assignee,
+      });
+      replaceConversation(updated);
+    } catch (requestError) {
+      replaceConversation(previous);
+      setError((requestError as Error).message);
+    } finally {
+      setPendingAction(null);
+    }
+  }
+
+  async function resolveConversation() {
+    const previous = selected;
+    replaceConversation({ ...selected, status: "resolved", unread: 0 });
+    setError(null);
+    setPendingAction("resolve");
+
+    try {
+      replaceConversation(
+        await patchConversation(selected.id, { status: "resolved", unread: 0 }),
+      );
+    } catch (requestError) {
+      replaceConversation(previous);
+      setError((requestError as Error).message);
+    } finally {
+      setPendingAction(null);
+    }
+  }
+
+  function restoreConversation(previous: Conversation) {
     setConversations((current) =>
       current.map((conversation) =>
-        conversation.id === selected.id
-          ? {
-              ...conversation,
-              aiManaged: !conversation.aiManaged,
-              assignee: conversation.aiManaged ? "周宁" : "Luma AI",
-            }
-          : conversation,
+        conversation.id === previous.id ? previous : conversation,
       ),
     );
   }
 
-  function sendReply() {
+  async function sendReply() {
     const content = draft.trim();
-    if (!content) return;
+    if (!content || pendingAction === "send") return;
+
+    const previous = selected;
+    const temporaryId = `local-${Date.now()}`;
+    setError(null);
+    setPendingAction("send");
 
     setConversations((current) =>
       current.map((conversation) =>
@@ -343,7 +433,7 @@ export function ConversationWorkspace() {
               messages: [
                 ...conversation.messages,
                 {
-                  id: `local-${Date.now()}`,
+                  id: temporaryId,
                   role: "agent" as const,
                   sender: "周宁",
                   content,
@@ -359,6 +449,24 @@ export function ConversationWorkspace() {
       ),
     );
     setDraft("");
+
+    try {
+      const response = await fetch(
+        `/api/conversations/${selected.id}/messages`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ role: "agent", sender: "周宁", content }),
+        },
+      );
+      replaceConversation(await parseConversationResponse(response));
+    } catch (requestError) {
+      restoreConversation(previous);
+      setDraft(content);
+      setError((requestError as Error).message);
+    } finally {
+      setPendingAction(null);
+    }
   }
 
   function draftAiReply() {
@@ -425,6 +533,7 @@ export function ConversationWorkspace() {
               variant={selected.aiManaged ? "outline" : "default"}
               size="sm"
               onClick={toggleAiManaged}
+              disabled={pendingAction === "handoff"}
               className="hidden sm:flex"
             >
               {selected.aiManaged ? (
@@ -434,7 +543,15 @@ export function ConversationWorkspace() {
               )}
               {selected.aiManaged ? "人工接管" : "交给 AI"}
             </Button>
-            <Button variant="outline" size="icon-sm" aria-label="标记为已解决">
+            <Button
+              variant="outline"
+              size="icon-sm"
+              onClick={resolveConversation}
+              disabled={
+                selected.status === "resolved" || pendingAction === "resolve"
+              }
+              aria-label="标记为已解决"
+            >
               <Check className="size-4" />
             </Button>
             <DropdownMenu>
@@ -522,6 +639,14 @@ export function ConversationWorkspace() {
         </ScrollArea>
 
         <footer className="shrink-0 border-t bg-background p-3 sm:p-4">
+          {error && (
+            <p
+              role="alert"
+              className="mx-auto mb-2 max-w-3xl text-xs text-destructive"
+            >
+              {error}
+            </p>
+          )}
           <div className="mx-auto max-w-3xl border bg-background shadow-sm focus-within:ring-2 focus-within:ring-ring/30">
             <div className="flex items-center gap-1 border-b px-2 py-1.5">
               <Button variant="ghost" size="xs">
@@ -576,7 +701,7 @@ export function ConversationWorkspace() {
                 size="icon-sm"
                 className="ml-auto"
                 onClick={sendReply}
-                disabled={!draft.trim()}
+                disabled={!draft.trim() || pendingAction === "send"}
                 aria-label="发送回复"
               >
                 <ArrowUp className="size-4" />

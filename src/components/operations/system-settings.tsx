@@ -16,7 +16,22 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
-export function SystemSettings() {
+type SystemStatus = {
+  ai: {
+    configured: boolean;
+    mode: "provider" | "demo";
+    provider: string;
+    baseURL: string | null;
+    model: string | null;
+  };
+  dataMode: "postgres" | "demo";
+};
+
+export function SystemSettings({
+  systemStatus,
+}: {
+  systemStatus: SystemStatus;
+}) {
   const [saved, setSaved] = useState(false);
   const [autoResolve, setAutoResolve] = useState(true);
   const [maskSensitive, setMaskSensitive] = useState(true);
@@ -36,10 +51,19 @@ export function SystemSettings() {
               工作空间、AI 策略与安全配置
             </p>
           </div>
-          <Button size="sm" onClick={save}>
-            {saved ? <Check className="size-4" /> : <Save className="size-4" />}
-            {saved ? "已保存" : "保存更改"}
-          </Button>
+          <div className="flex items-center gap-2">
+            <Badge variant="outline" className="font-normal">
+              {systemStatus.dataMode === "postgres" ? "PostgreSQL" : "演示数据"}
+            </Badge>
+            <Button size="sm" onClick={save}>
+              {saved ? (
+                <Check className="size-4" />
+              ) : (
+                <Save className="size-4" />
+              )}
+              {saved ? "已保存" : "保存更改"}
+            </Button>
+          </div>
         </header>
 
         <Tabs defaultValue="workspace" className="gap-4">
@@ -110,9 +134,14 @@ export function SystemSettings() {
             <section className="border bg-background p-5">
               <div className="flex items-center gap-2">
                 <KeyRound className="size-4 text-primary" />
-                <h2 className="text-sm font-semibold">OpenAI 兼容模型</h2>
-                <Badge variant="secondary" className="ml-auto font-normal">
-                  服务端环境变量
+                <h2 className="text-sm font-semibold">
+                  {systemStatus.ai.provider}
+                </h2>
+                <Badge
+                  variant={systemStatus.ai.configured ? "default" : "secondary"}
+                  className="ml-auto font-normal"
+                >
+                  {systemStatus.ai.configured ? "已配置" : "演示模式"}
                 </Badge>
               </div>
               <p className="mt-2 text-xs leading-5 text-muted-foreground">
@@ -121,17 +150,24 @@ export function SystemSettings() {
               <div className="mt-5 grid gap-4 sm:grid-cols-2">
                 <label className="space-y-2 text-sm font-medium">
                   AI_BASE_URL
-                  <Input value="https://api.example.com/v1" readOnly />
+                  <Input
+                    value={systemStatus.ai.baseURL ?? "尚未配置"}
+                    readOnly
+                  />
                 </label>
                 <label className="space-y-2 text-sm font-medium">
                   AI_MODEL
-                  <Input value="your-model-id" readOnly />
+                  <Input value={systemStatus.ai.model ?? "尚未配置"} readOnly />
                 </label>
                 <label className="space-y-2 text-sm font-medium sm:col-span-2">
                   AI_API_KEY
                   <Input
                     type="password"
-                    value="configured-on-server"
+                    value={
+                      systemStatus.ai.configured
+                        ? "configured-on-server"
+                        : "not-configured"
+                    }
                     readOnly
                   />
                 </label>

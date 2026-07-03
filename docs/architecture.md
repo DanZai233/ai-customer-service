@@ -23,12 +23,15 @@ flowchart LR
 - `src/components/ai`：客服回复助手。
 - `src/components/operations`：渠道、团队和系统配置。
 - `src/app/api/ai/suggest`：AI SDK 6 流式回复接口。
+- `src/app/api/conversations`：会话、状态和消息写入 API。
+- `src/db/schema.ts`：PostgreSQL 多租户数据模型。
+- `src/lib/conversations`：PostgreSQL/演示双仓储实现与输入校验。
 - `src/lib/ai/provider.ts`：OpenAI 兼容模型适配器。
 - `src/lib/knowledge-data.ts`：演示检索内核；后续可替换为 RAGFlow、FastGPT 或向量数据库。
 
 ## 生产化替换点
 
-1. 将演示数据替换为 PostgreSQL，并给联系人、会话、消息、知识和审计日志建立租户隔离。
+1. 当前联系人、会话、消息与订单已由 PostgreSQL 持久化；知识、团队配置与审计日志仍需迁移。
 2. 将本地关键词检索替换为 FastGPT/RAGFlow API 或 pgvector 混合检索。
 3. 通过 Chatwoot Webhook/API 或自建渠道网关接入真实消息。
 4. 对 Webhook 加签名验证、幂等键、重试队列和死信处理。
