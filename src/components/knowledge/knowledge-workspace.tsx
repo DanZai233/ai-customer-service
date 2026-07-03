@@ -1,19 +1,30 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import {
+  Archive,
   BookOpenText,
   CheckCircle2,
+  CircleAlert,
   FileText,
   Globe2,
+  LoaderCircle,
   MoreHorizontal,
+  Pencil,
   Plus,
   Search,
+  Send,
   Sparkles,
 } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -31,7 +42,6 @@ import {
   SheetFooter,
   SheetHeader,
   SheetTitle,
-  SheetTrigger,
 } from "@/components/ui/sheet";
 import {
   Table,
@@ -42,11 +52,12 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  knowledgeArticles as initialArticles,
-  searchKnowledge,
-  type KnowledgeArticle,
-} from "@/lib/knowledge-data";
+import type {
+  KnowledgeDocument,
+  KnowledgeDocumentStatus,
+  KnowledgeMatch,
+  KnowledgeStats,
+} from "@/lib/knowledge/types";
 
 const sourceIcons = {
   manual: BookOpenText,
@@ -54,46 +65,227 @@ const sourceIcons = {
   website: Globe2,
 };
 
-export function KnowledgeWorkspace() {
-  const [articles, setArticles] = useState(initialArticles);
+const statusLabels: Record<KnowledgeDocumentStatus, string> = {
+  draft: "草稿",
+  published: "已发布",
+  archived: "已归档",
+};
+
+const categories = [
+  "订单与物流",
+  "售后政策",
+  "发票与财务",
+  "销售与续费",
+  "服务说明",
+];
+
+type Notice = { tone: "success" | "error"; text: string } | null;
+
+async function requestJson<T>(url: string, init?: RequestInit): Promise<T> {
+  const response = await fetch(url, {
+    ...init,
+    headers: { "Content-Type": "application/json", ...init?.headers },
+  });
+  const payload = (await response.json()) as { data?: T; error?: string };
+  if (!response.ok || payload.data === undefined) {
+    throw new Error(payload.error || "请求失败，请稍后重试");
+  }
+  return payload.data;
+}
+
+function formatUpdatedAt(value: string) {
+  return new Intl.DateTimeFormat("zh-CN", {
+    month: "numeric",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(new Date(value));
+}
+
+export function KnowledgeWorkspace({
+  initialDocuments,
+  initialStats,
+  canWrite,
+  canPublish,
+}: {
+  initialDocuments: KnowledgeDocument[];
+  initialStats: KnowledgeStats;
+  canWrite: boolean;
+  canPublish: boolean;
+}) {
+  const [documents, setDocuments] = useState(initialDocuments);
+  const [stats, setStats] = useState(initialStats);
   const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
   const [testQuery, setTestQuery] = useState("物流三天没有更新怎么办？");
+  const [matches, setMatches] = useState<KnowledgeMatch[]>([]);
+  const [searching, setSearching] = useState(false);
   const [sheetOpen, setSheetOpen] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [title, setTitle] = useState("");
-  const [category, setCategory] = useState("订单与物流");
+  const [category, setCategory] = useState(categories[0]);
   const [content, setContent] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [busyId, setBusyId] = useState<string | null>(null);
+  const [notice, setNotice] = useState<Notice>(null);
 
-  const filteredArticles = articles.filter((article) =>
-    `${article.title}${article.category}`
-      .toLowerCase()
-      .includes(search.toLowerCase()),
-  );
-  const matches = useMemo(
-    () => searchKnowledge(testQuery, articles).slice(0, 3),
-    [testQuery, articles],
-  );
-  const publishedCount = articles.filter(
-    (article) => article.status === "published",
-  ).length;
+  const normalizedSearch = search.trim().toLowerCase();
+  const filteredDocuments = documents.filter((document) => {
+    const matchesText =
+      `${document.title}${document.category}${document.content}`
+        .toLowerCase()
+        .includes(normalizedSearch);
+    const matchesStatus =
+      statusFilter === "all" || document.status === statusFilter;
+    return matchesText && matchesStatus;
+  });
 
-  function addArticle() {
-    if (!title.trim() || !content.trim()) return;
-
-    const article: KnowledgeArticle = {
-      id: `kb-local-${Date.now()}`,
-      title: title.trim(),
-      category,
-      content: content.trim(),
-      status: "draft",
-      source: "manual",
-      updatedAt: "刚刚",
-      hits: 0,
-    };
-
-    setArticles((current) => [article, ...current]);
+  function resetEditor() {
+    setEditingId(null);
     setTitle("");
+    setCategory(categories[0]);
     setContent("");
-    setSheetOpen(false);
+  }
+
+  function openCreate() {
+    resetEditor();
+    setNotice(null);
+    setSheetOpen(true);
+  }
+
+  function openEdit(document: KnowledgeDocument) {
+    setEditingId(document.id);
+    setTitle(document.title);
+    setCategory(document.category);
+    setContent(document.content);
+    setNotice(null);
+    setSheetOpen(true);
+  }
+
+  function replaceDocument(next: KnowledgeDocument) {
+    setDocuments((current) =>
+      current.map((document) => (document.id === next.id ? next : document)),
+    );
+    setMatches((current) =>
+      current.map((match) =>
+        match.document.id === next.id ? { ...match, document: next } : match,
+      ),
+    );
+  }
+
+  async function saveDocument() {
+    if (!title.trim() || !content.trim()) return;
+    setSaving(true);
+    setNotice(null);
+    try {
+      const body = JSON.stringify({ title, category, content });
+      const document = editingId
+        ? await requestJson<KnowledgeDocument>(`/api/knowledge/${editingId}`, {
+            method: "PATCH",
+            body,
+          })
+        : await requestJson<KnowledgeDocument>("/api/knowledge", {
+            method: "POST",
+            body,
+          });
+      if (editingId) {
+        replaceDocument(document);
+      } else {
+        setDocuments((current) => [document, ...current]);
+        setStats((current) => ({ ...current, total: current.total + 1 }));
+      }
+      setSheetOpen(false);
+      resetEditor();
+      setNotice({
+        tone: "success",
+        text: editingId ? "知识内容已更新" : "草稿已创建",
+      });
+    } catch (error) {
+      setNotice({
+        tone: "error",
+        text: error instanceof Error ? error.message : "保存失败",
+      });
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function changeStatus(
+    document: KnowledgeDocument,
+    action: "publish" | "archive",
+  ) {
+    setBusyId(document.id);
+    setNotice(null);
+    try {
+      const next = await requestJson<KnowledgeDocument>(
+        `/api/knowledge/${document.id}/${action}`,
+        { method: "POST", body: "{}" },
+      );
+      replaceDocument(next);
+      if (action === "archive") {
+        setMatches((current) =>
+          current.filter((match) => match.document.id !== document.id),
+        );
+      }
+      setStats((current) => ({
+        ...current,
+        published:
+          action === "publish"
+            ? current.published + (document.status === "published" ? 0 : 1)
+            : Math.max(
+                0,
+                current.published - (document.status === "published" ? 1 : 0),
+              ),
+      }));
+      setNotice({
+        tone: "success",
+        text: action === "publish" ? "知识已发布" : "知识已归档",
+      });
+    } catch (error) {
+      setNotice({
+        tone: "error",
+        text: error instanceof Error ? error.message : "操作失败",
+      });
+    } finally {
+      setBusyId(null);
+    }
+  }
+
+  async function runSearch() {
+    if (testQuery.trim().length < 2) return;
+    setSearching(true);
+    setNotice(null);
+    try {
+      const data = await requestJson<{
+        matches: KnowledgeMatch[];
+        stats: KnowledgeStats;
+      }>("/api/knowledge/search", {
+        method: "POST",
+        body: JSON.stringify({ query: testQuery, limit: 3 }),
+      });
+      setMatches(data.matches);
+      setStats(data.stats);
+      const hitCounts = new Map(
+        data.matches.map((match) => [
+          match.document.id,
+          match.document.hitCount,
+        ]),
+      );
+      setDocuments((current) =>
+        current.map((document) =>
+          hitCounts.has(document.id)
+            ? { ...document, hitCount: hitCounts.get(document.id) ?? 0 }
+            : document,
+        ),
+      );
+    } catch (error) {
+      setNotice({
+        tone: "error",
+        text: error instanceof Error ? error.message : "检索失败",
+      });
+    } finally {
+      setSearching(false);
+    }
   }
 
   return (
@@ -106,84 +298,53 @@ export function KnowledgeWorkspace() {
               维护 AI 可引用的业务事实与处理规则
             </p>
           </div>
-          <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
-            <SheetTrigger asChild>
-              <Button size="sm">
-                <Plus className="size-4" />
+          <div className="flex items-center gap-2">
+            {!canWrite && <Badge variant="secondary">只读</Badge>}
+            {canWrite && (
+              <Button size="sm" onClick={openCreate}>
+                <Plus />
                 新建知识
               </Button>
-            </SheetTrigger>
-            <SheetContent className="flex w-full flex-col sm:max-w-lg">
-              <SheetHeader>
-                <SheetTitle>新建知识</SheetTitle>
-                <SheetDescription>
-                  草稿不会进入 AI 检索，发布前可以继续审核。
-                </SheetDescription>
-              </SheetHeader>
-              <div className="flex-1 space-y-5 px-4">
-                <label className="block space-y-2 text-sm font-medium">
-                  标题
-                  <Input
-                    value={title}
-                    onChange={(event) => setTitle(event.target.value)}
-                    placeholder="例如：换货申请处理规则"
-                  />
-                </label>
-                <label className="block space-y-2 text-sm font-medium">
-                  分类
-                  <Select value={category} onValueChange={setCategory}>
-                    <SelectTrigger className="w-full">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="订单与物流">订单与物流</SelectItem>
-                      <SelectItem value="售后政策">售后政策</SelectItem>
-                      <SelectItem value="发票与财务">发票与财务</SelectItem>
-                      <SelectItem value="服务说明">服务说明</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </label>
-                <label className="block space-y-2 text-sm font-medium">
-                  正文
-                  <Textarea
-                    value={content}
-                    onChange={(event) => setContent(event.target.value)}
-                    placeholder="写清适用条件、处理步骤、时效和需要人工确认的边界。"
-                    className="min-h-48 resize-none"
-                  />
-                </label>
-              </div>
-              <SheetFooter>
-                <Button variant="outline" onClick={() => setSheetOpen(false)}>
-                  取消
-                </Button>
-                <Button
-                  onClick={addArticle}
-                  disabled={!title.trim() || !content.trim()}
-                >
-                  保存草稿
-                </Button>
-              </SheetFooter>
-            </SheetContent>
-          </Sheet>
+            )}
+          </div>
         </header>
+
+        {notice && (
+          <div
+            role="status"
+            className={`mb-4 flex items-center gap-2 border px-3 py-2 text-xs ${
+              notice.tone === "success"
+                ? "border-emerald-200 bg-emerald-50 text-emerald-800"
+                : "border-destructive/30 bg-destructive/5 text-destructive"
+            }`}
+          >
+            {notice.tone === "success" ? (
+              <CheckCircle2 className="size-3.5" />
+            ) : (
+              <CircleAlert className="size-3.5" />
+            )}
+            {notice.text}
+          </div>
+        )}
 
         <section className="mb-4 grid gap-px overflow-hidden border bg-border sm:grid-cols-3">
           <div className="bg-background p-4">
             <p className="text-xs text-muted-foreground">知识总数</p>
             <p className="mt-2 font-mono text-2xl font-semibold">
-              {articles.length}
+              {stats.total}
             </p>
           </div>
           <div className="bg-background p-4">
             <p className="text-xs text-muted-foreground">已发布</p>
             <p className="mt-2 font-mono text-2xl font-semibold">
-              {publishedCount}
+              {stats.published}
             </p>
           </div>
           <div className="bg-background p-4">
             <p className="text-xs text-muted-foreground">本月检索命中</p>
-            <p className="mt-2 font-mono text-2xl font-semibold">1,041</p>
+            <p className="mt-2 font-mono text-2xl font-semibold">
+              {stats.retrievalsThisMonth.toLocaleString("zh-CN")}
+            </p>
           </div>
         </section>
 
@@ -195,11 +356,11 @@ export function KnowledgeWorkspace() {
                 <Input
                   value={search}
                   onChange={(event) => setSearch(event.target.value)}
-                  placeholder="搜索知识标题或分类"
+                  placeholder="搜索标题、分类或正文"
                   className="pl-9"
                 />
               </div>
-              <Select defaultValue="all">
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
                 <SelectTrigger className="w-28">
                   <SelectValue />
                 </SelectTrigger>
@@ -207,6 +368,7 @@ export function KnowledgeWorkspace() {
                   <SelectItem value="all">全部状态</SelectItem>
                   <SelectItem value="published">已发布</SelectItem>
                   <SelectItem value="draft">草稿</SelectItem>
+                  <SelectItem value="archived">已归档</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -221,10 +383,11 @@ export function KnowledgeWorkspace() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredArticles.map((article) => {
-                    const SourceIcon = sourceIcons[article.source];
+                  {filteredDocuments.map((document) => {
+                    const SourceIcon = sourceIcons[document.source];
+                    const canManage = canWrite || canPublish;
                     return (
-                      <TableRow key={article.id}>
+                      <TableRow key={document.id}>
                         <TableCell>
                           <div className="flex items-start gap-3">
                             <span className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-md bg-muted text-muted-foreground">
@@ -232,10 +395,11 @@ export function KnowledgeWorkspace() {
                             </span>
                             <div className="min-w-0">
                               <p className="truncate text-sm font-medium">
-                                {article.title}
+                                {document.title}
                               </p>
                               <p className="mt-1 text-xs text-muted-foreground">
-                                {article.category} · {article.updatedAt}
+                                {document.category} ·{" "}
+                                {formatUpdatedAt(document.updatedAt)}
                               </p>
                             </div>
                           </div>
@@ -243,30 +407,84 @@ export function KnowledgeWorkspace() {
                         <TableCell>
                           <Badge
                             variant={
-                              article.status === "published"
+                              document.status === "published"
                                 ? "outline"
                                 : "secondary"
                             }
                             className="font-normal"
                           >
-                            {article.status === "published" ? "已发布" : "草稿"}
+                            {statusLabels[document.status]}
                           </Badge>
                         </TableCell>
                         <TableCell className="text-right font-mono text-xs">
-                          {article.hits}
+                          {document.hitCount}
                         </TableCell>
                         <TableCell>
-                          <Button
-                            variant="ghost"
-                            size="icon-sm"
-                            aria-label={`管理 ${article.title}`}
-                          >
-                            <MoreHorizontal className="size-4" />
-                          </Button>
+                          {canManage && (
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="icon-sm"
+                                  aria-label={`管理 ${document.title}`}
+                                  disabled={busyId === document.id}
+                                >
+                                  {busyId === document.id ? (
+                                    <LoaderCircle className="animate-spin" />
+                                  ) : (
+                                    <MoreHorizontal />
+                                  )}
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                {canWrite && (
+                                  <DropdownMenuItem
+                                    onSelect={() => openEdit(document)}
+                                  >
+                                    <Pencil />
+                                    编辑
+                                  </DropdownMenuItem>
+                                )}
+                                {canPublish &&
+                                  document.status !== "published" && (
+                                    <DropdownMenuItem
+                                      onSelect={() =>
+                                        changeStatus(document, "publish")
+                                      }
+                                    >
+                                      <Send />
+                                      发布
+                                    </DropdownMenuItem>
+                                  )}
+                                {canPublish &&
+                                  document.status !== "archived" && (
+                                    <DropdownMenuItem
+                                      variant="destructive"
+                                      onSelect={() =>
+                                        changeStatus(document, "archive")
+                                      }
+                                    >
+                                      <Archive />
+                                      归档
+                                    </DropdownMenuItem>
+                                  )}
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          )}
                         </TableCell>
                       </TableRow>
                     );
                   })}
+                  {filteredDocuments.length === 0 && (
+                    <TableRow>
+                      <TableCell colSpan={4} className="h-32 text-center">
+                        <p className="text-sm font-medium">没有匹配的知识</p>
+                        <p className="mt-1 text-xs text-muted-foreground">
+                          调整搜索词或状态筛选
+                        </p>
+                      </TableCell>
+                    </TableRow>
+                  )}
                 </TableBody>
               </Table>
             </div>
@@ -279,7 +497,7 @@ export function KnowledgeWorkspace() {
                 <h2 className="text-sm font-semibold">检索测试</h2>
               </div>
               <p className="mt-1 text-xs text-muted-foreground">
-                检查客户问题会命中哪些资料
+                使用与 AI 回复相同的已发布知识
               </p>
             </header>
             <div className="p-4">
@@ -291,19 +509,32 @@ export function KnowledgeWorkspace() {
                 onChange={(event) => setTestQuery(event.target.value)}
                 className="mt-2 min-h-24 resize-none"
               />
+              <Button
+                className="mt-3 w-full"
+                size="sm"
+                onClick={runSearch}
+                disabled={searching || testQuery.trim().length < 2}
+              >
+                {searching ? (
+                  <LoaderCircle className="animate-spin" />
+                ) : (
+                  <Search />
+                )}
+                运行检索
+              </Button>
             </div>
             <ScrollArea className="min-h-0 flex-1 border-t">
               <div className="space-y-3 p-4">
                 {matches.length > 0 ? (
-                  matches.map(({ article, score }, index) => (
-                    <article key={article.id} className="border p-3">
+                  matches.map(({ document, score }, index) => (
+                    <article key={document.id} className="border p-3">
                       <div className="flex items-start gap-2">
                         <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-primary/10 font-mono text-[10px] text-primary">
                           {index + 1}
                         </span>
                         <div className="min-w-0 flex-1">
                           <p className="text-xs font-medium leading-5">
-                            {article.title}
+                            {document.title}
                           </p>
                           <div className="mt-2 flex items-center gap-2">
                             <Progress value={score * 100} className="h-1.5" />
@@ -312,7 +543,7 @@ export function KnowledgeWorkspace() {
                             </span>
                           </div>
                           <p className="mt-2 line-clamp-3 text-[11px] leading-5 text-muted-foreground">
-                            {article.content}
+                            {document.content}
                           </p>
                         </div>
                       </div>
@@ -320,12 +551,10 @@ export function KnowledgeWorkspace() {
                   ))
                 ) : (
                   <div className="py-10 text-center">
-                    <CheckCircle2 className="mx-auto size-5 text-muted-foreground" />
-                    <p className="mt-3 text-sm font-medium">
-                      没有达到阈值的资料
-                    </p>
+                    <Search className="mx-auto size-5 text-muted-foreground" />
+                    <p className="mt-3 text-sm font-medium">等待检索</p>
                     <p className="mt-1 text-xs text-muted-foreground">
-                      AI 将建议转人工核实
+                      输入客户问题并运行检索
                     </p>
                   </div>
                 )}
@@ -334,6 +563,73 @@ export function KnowledgeWorkspace() {
           </section>
         </div>
       </div>
+
+      <Sheet
+        open={sheetOpen}
+        onOpenChange={(open) => {
+          setSheetOpen(open);
+          if (!open) resetEditor();
+        }}
+      >
+        <SheetContent className="flex w-full flex-col sm:max-w-lg">
+          <SheetHeader>
+            <SheetTitle>{editingId ? "编辑知识" : "新建知识"}</SheetTitle>
+            <SheetDescription>
+              {editingId
+                ? "保存后更新当前内容。"
+                : "新条目先保存为草稿，发布后进入 AI 检索。"}
+            </SheetDescription>
+          </SheetHeader>
+          <div className="flex-1 space-y-5 overflow-y-auto px-4">
+            <label className="block space-y-2 text-sm font-medium">
+              标题
+              <Input
+                value={title}
+                onChange={(event) => setTitle(event.target.value)}
+                placeholder="例如：换货申请处理规则"
+              />
+            </label>
+            <label className="block space-y-2 text-sm font-medium">
+              分类
+              <Select value={category} onValueChange={setCategory}>
+                <SelectTrigger className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {categories.map((item) => (
+                    <SelectItem key={item} value={item}>
+                      {item}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </label>
+            <label className="block space-y-2 text-sm font-medium">
+              正文
+              <Textarea
+                value={content}
+                onChange={(event) => setContent(event.target.value)}
+                placeholder="写清适用条件、处理步骤、时效和人工确认边界。"
+                className="min-h-64 resize-none"
+              />
+            </label>
+          </div>
+          <SheetFooter>
+            <Button variant="outline" onClick={() => setSheetOpen(false)}>
+              取消
+            </Button>
+            <Button
+              onClick={saveDocument}
+              disabled={
+                saving || title.trim().length < 3 || content.trim().length < 20
+              }
+            >
+              {saving && <LoaderCircle className="animate-spin" />}
+              {editingId ? "保存修改" : "保存草稿"}
+            </Button>
+          </SheetFooter>
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }
