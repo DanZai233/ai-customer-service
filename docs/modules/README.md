@@ -19,6 +19,7 @@
 | 知识服务   | [13-knowledge-service.md](13-knowledge-service.md)         | PostgreSQL 检索已实现  |
 | 开放 API   | [14-public-api.md](14-public-api.md)                       | 会话接口与密钥已实现   |
 | 开发者中心 | [15-developer-console.md](15-developer-console.md)         | 密钥与示例已实现       |
+| 行业模板   | [16-industry-templates.md](16-industry-templates.md)       | 8 套模板可一键安装     |
 
 ## 状态定义
 

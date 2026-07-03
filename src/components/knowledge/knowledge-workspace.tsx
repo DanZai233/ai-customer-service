@@ -13,6 +13,7 @@ import {
   Pencil,
   Plus,
   Search,
+  Shapes,
   Send,
   Sparkles,
 } from "lucide-react";
@@ -63,6 +64,7 @@ const sourceIcons = {
   manual: BookOpenText,
   document: FileText,
   website: Globe2,
+  template: Shapes,
 };
 
 const statusLabels: Record<KnowledgeDocumentStatus, string> = {

@@ -1,5 +1,6 @@
 export type KnowledgeDocumentStatus = "draft" | "published" | "archived";
-export type KnowledgeDocumentSource = "manual" | "document" | "website";
+export type KnowledgeDocumentSource =
+  "manual" | "document" | "website" | "template";
 export type KnowledgeRetrievalSource = "test" | "ai";
 
 export type KnowledgeDocument = {

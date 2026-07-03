@@ -9,6 +9,7 @@ import {
   Cable,
   CodeXml,
   LogOut,
+  LayoutTemplate,
   Menu,
   MessageSquareText,
   Settings,
@@ -80,6 +81,12 @@ const navigation = [
     label: "开发者",
     icon: CodeXml,
     permission: "settings.read",
+  },
+  {
+    href: "/templates",
+    label: "行业模板",
+    icon: LayoutTemplate,
+    permission: "knowledge.read",
   },
 ] satisfies Array<{
   href: string;

@@ -39,6 +39,7 @@ export const knowledgeDocumentSourceEnum = pgEnum("knowledge_document_source", [
   "manual",
   "document",
   "website",
+  "template",
 ]);
 export const apiKeyScopeEnum = pgEnum("api_key_scope", [
   "conversations:read",
@@ -231,6 +232,10 @@ export const knowledgeDocuments = pgTable(
       table.organizationId,
       table.status,
       table.updatedAt,
+    ),
+    uniqueIndex("knowledge_documents_org_source_url_idx").on(
+      table.organizationId,
+      table.sourceUrl,
     ),
   ],
 );

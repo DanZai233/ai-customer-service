@@ -1,0 +1,2 @@
+ALTER TYPE "public"."knowledge_document_source" ADD VALUE 'template';--> statement-breakpoint
+CREATE UNIQUE INDEX "knowledge_documents_org_source_url_idx" ON "knowledge_documents" USING btree ("organizationId","sourceUrl");

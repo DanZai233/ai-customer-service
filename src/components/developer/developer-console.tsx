@@ -35,6 +35,7 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { copyText } from "@/lib/client/clipboard";
 import type { ApiKeyScope, PublicApiKey } from "@/lib/developer/api-keys";
 
 const scopeOptions: Array<{
@@ -134,23 +135,6 @@ async function requestJson<T>(url: string, init?: RequestInit): Promise<T> {
     throw new Error(payload.error || "请求失败");
   }
   return payload.data;
-}
-
-async function copyText(value: string) {
-  try {
-    await navigator.clipboard.writeText(value);
-    return;
-  } catch {
-    const textarea = document.createElement("textarea");
-    textarea.value = value;
-    textarea.style.position = "fixed";
-    textarea.style.opacity = "0";
-    document.body.append(textarea);
-    textarea.select();
-    const copied = document.execCommand("copy");
-    textarea.remove();
-    if (!copied) throw new Error("copy failed");
-  }
 }
 
 function CopyButton({
