@@ -17,6 +17,7 @@
 | 认证与权限 | [11-auth-rbac.md](11-auth-rbac.md)                         | 已实现                 |
 | 运行时配置 | [12-runtime-configuration.md](12-runtime-configuration.md) | 已实现                 |
 | 知识服务   | [13-knowledge-service.md](13-knowledge-service.md)         | PostgreSQL 检索已实现  |
+| 开放 API   | [14-public-api.md](14-public-api.md)                       | 会话接口与密钥已实现   |
 
 ## 状态定义
 

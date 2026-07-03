@@ -40,6 +40,11 @@ export const knowledgeDocumentSourceEnum = pgEnum("knowledge_document_source", [
   "document",
   "website",
 ]);
+export const apiKeyScopeEnum = pgEnum("api_key_scope", [
+  "conversations:read",
+  "conversations:write",
+  "ai:generate",
+]);
 
 export const organizations = pgTable(
   "organizations",
@@ -66,6 +71,7 @@ export const customers = pgTable(
     city: text().notNull(),
     plan: text().notNull(),
     customerSince: text().notNull(),
+    externalId: text(),
     createdAt: timestamp({ withTimezone: true }).defaultNow().notNull(),
     updatedAt: timestamp({ withTimezone: true }).defaultNow().notNull(),
   },
@@ -74,6 +80,10 @@ export const customers = pgTable(
     uniqueIndex("customers_org_email_idx").on(
       table.organizationId,
       table.email,
+    ),
+    uniqueIndex("customers_org_external_idx").on(
+      table.organizationId,
+      table.externalId,
     ),
   ],
 );
@@ -246,5 +256,55 @@ export const knowledgeRetrievals = pgTable(
       table.createdAt,
     ),
     index("knowledge_retrievals_document_idx").on(table.documentId),
+  ],
+);
+
+export const apiKeys = pgTable(
+  "api_keys",
+  {
+    id: text().primaryKey(),
+    organizationId: text()
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    name: text().notNull(),
+    keyPrefix: text().notNull(),
+    keyHash: text().notNull(),
+    keyHint: text().notNull(),
+    scopes: apiKeyScopeEnum().array().notNull(),
+    lastUsedAt: timestamp({ withTimezone: true }),
+    expiresAt: timestamp({ withTimezone: true }),
+    revokedAt: timestamp({ withTimezone: true }),
+    createdBy: text(),
+    createdAt: timestamp({ withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    index("api_keys_org_created_idx").on(table.organizationId, table.createdAt),
+    uniqueIndex("api_keys_hash_idx").on(table.keyHash),
+  ],
+);
+
+export const apiIdempotencyRecords = pgTable(
+  "api_idempotency_records",
+  {
+    id: text().primaryKey(),
+    organizationId: text()
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    apiKeyId: text()
+      .notNull()
+      .references(() => apiKeys.id, { onDelete: "cascade" }),
+    idempotencyKey: text().notNull(),
+    requestHash: text().notNull(),
+    responseStatus: integer().notNull(),
+    responseBody: jsonb().$type<Record<string, unknown>>().notNull(),
+    createdAt: timestamp({ withTimezone: true }).defaultNow().notNull(),
+    expiresAt: timestamp({ withTimezone: true }).notNull(),
+  },
+  (table) => [
+    uniqueIndex("api_idempotency_key_idx").on(
+      table.apiKeyId,
+      table.idempotencyKey,
+    ),
+    index("api_idempotency_expires_idx").on(table.expiresAt),
   ],
 );
