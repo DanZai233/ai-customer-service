@@ -13,6 +13,7 @@ import {
 } from "./schema";
 import { conversations as demoConversations } from "../lib/demo-data";
 import { getAuth } from "../lib/auth/server";
+import { getOptionalRuntimeSecret } from "../lib/runtime-secrets";
 import { updateAiProviderSettings } from "../lib/settings/service";
 
 const organizationId = "org-luma";
@@ -157,7 +158,10 @@ async function seed() {
   }
 
   const adminEmail = process.env.AUTH_SEED_EMAIL?.trim();
-  const adminPassword = process.env.AUTH_SEED_PASSWORD;
+  const adminPassword = getOptionalRuntimeSecret(
+    process.env.AUTH_SEED_PASSWORD,
+    process.env.AUTH_SEED_PASSWORD_FILE,
+  );
   if (adminEmail && adminPassword) {
     const existingAdmin = await db
       .select({ id: authUser.id })

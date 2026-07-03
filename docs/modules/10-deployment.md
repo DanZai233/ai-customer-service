@@ -2,22 +2,40 @@
 
 ## 职责
 
-提供一致的本地/生产构建、数据库迁移、健康检查和持续集成入口。
+提供一致的本地/生产构建、首次密钥初始化、数据库迁移、健康检查和持续集成入口。
 
 ## 代码入口
 
 - `Dockerfile`：依赖、构建、迁移和运行阶段。
-- `docker-compose.yml`：PostgreSQL、迁移任务和 Web 服务。
+- `docker-compose.yml`：密钥初始化、PostgreSQL、迁移任务和 Web 服务。
+- `scripts/docker-up.sh`：一键构建、启动和首次凭证输出。
 - `.github/workflows/ci.yml`：远端质量检查。
 - `src/app/api/health/route.ts`：运行探活。
 
-## 启动
+## 一键启动
 
 ```bash
-docker compose up -d --build
+./scripts/docker-up.sh
 ```
 
-启动顺序为数据库健康、迁移与种子任务成功、Web 服务启动。`GET /api/health` 会实际探测数据库，故障时返回 503。
+首次启动会自动生成认证密钥、配置加密密钥和随机管理员密码。脚本在启动完成后显示首次登录账号与密码。模型配置在登录后的“设置 → AI 配置”中完成。
+
+直接执行 `docker compose up -d --build` 也可以启动；初始密码保存在仅初始化/迁移服务挂载的 `luma-bootstrap` 卷。
+
+## 启动顺序
+
+1. `key-init` 创建或复用持久化根密钥。
+2. PostgreSQL 通过健康检查。
+3. `migrate` 执行 SQL 迁移、基础数据和首次管理员种子。
+4. `luma` 启动并通过 `/api/health` 容器健康检查。
+
+## 数据卷
+
+- `luma-postgres`：业务、认证与运行时配置数据。
+- `luma-secrets`：认证和配置加密根密钥，必须备份。
+- `luma-bootstrap`：首次管理员随机密码，不挂载到 Web 容器。
+
+删除数据卷会重置数据库和密钥。不要在需要保留数据的环境执行 `docker compose down -v`。
 
 ## CI 验收
 
@@ -25,4 +43,4 @@ CI 执行格式检查、lint、TypeScript、单元测试和生产构建。迁移
 
 ## 生产边界
 
-正式环境需使用托管 PostgreSQL、TLS、密钥托管、日志/指标采集、备份恢复演练、镜像扫描和渐进发布。
+正式环境应替换默认数据库口令，使用托管 PostgreSQL、TLS、外部密钥托管、日志/指标采集、备份恢复演练、镜像扫描和渐进发布。

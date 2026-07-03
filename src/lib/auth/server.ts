@@ -3,12 +3,17 @@ import { betterAuth } from "better-auth";
 
 import { getDatabase } from "@/db/client";
 import * as authSchema from "@/db/auth-schema";
+import { getRequiredRuntimeSecret } from "@/lib/runtime-secrets";
 
 function createAuth() {
   return betterAuth({
     appName: "Luma 客服中台",
     baseURL: process.env.BETTER_AUTH_URL,
-    secret: process.env.BETTER_AUTH_SECRET,
+    secret: getRequiredRuntimeSecret(
+      process.env.BETTER_AUTH_SECRET,
+      process.env.BETTER_AUTH_SECRET_FILE,
+      "Better Auth secret",
+    ),
     database: drizzleAdapter(getDatabase(), {
       provider: "pg",
       schema: authSchema,

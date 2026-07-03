@@ -34,7 +34,7 @@ npm run build
 - AI/人工接管、回复发送和 AI 草稿
 - 知识管理、检索测试和草稿发布边界
 - AI SDK 6 流式回复接口与 OpenAI 兼容模型适配
-- 火山引擎方舟（豆包）专用环境变量预设
+- 火山引擎方舟（豆包）与 OpenAI 兼容模型后台配置
 - 数据分析、渠道配置、团队负载和系统设置
 - Docker、健康检查与 GitHub Actions CI
 - PostgreSQL 持久化、Drizzle SQL 迁移与会话读写 API
@@ -48,7 +48,7 @@ npm run build
 ## Docker
 
 ```bash
-docker compose up --build
+./scripts/docker-up.sh
 ```
 
-该命令会启动 PostgreSQL、执行迁移和种子脚本，再启动 Web 服务。随后访问 [http://localhost:3000](http://localhost:3000)，探活地址为 `/api/health`。
+该脚本会生成持久化根密钥与随机初始密码，启动 PostgreSQL、执行迁移和种子脚本，再启动 Web 服务。随后访问 [http://localhost:3000](http://localhost:3000)，登录后在“设置 → AI 配置”中填写火山引擎或其他模型信息；修改后无需重新部署。

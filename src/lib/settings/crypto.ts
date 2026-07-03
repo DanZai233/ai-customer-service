@@ -4,32 +4,25 @@ import {
   createHash,
   randomBytes,
 } from "node:crypto";
-import { readFileSync } from "node:fs";
+
+import {
+  getOptionalRuntimeSecret,
+  getRequiredRuntimeSecret,
+} from "@/lib/runtime-secrets";
 
 const algorithm = "aes-256-gcm";
 
-function readSecretFile(path: string | undefined) {
-  if (!path) return null;
-  try {
-    return readFileSync(path, "utf8").trim() || null;
-  } catch {
-    return null;
-  }
-}
-
 export function getConfigEncryptionSecret() {
-  const secret =
-    process.env.CONFIG_ENCRYPTION_KEY?.trim() ||
-    readSecretFile(process.env.CONFIG_ENCRYPTION_KEY_FILE) ||
-    process.env.BETTER_AUTH_SECRET?.trim() ||
-    readSecretFile(process.env.BETTER_AUTH_SECRET_FILE);
-
-  if (!secret) {
-    throw new Error(
-      "Configuration encryption key is missing. Set CONFIG_ENCRYPTION_KEY or CONFIG_ENCRYPTION_KEY_FILE.",
-    );
-  }
-  return secret;
+  const dedicated = getOptionalRuntimeSecret(
+    process.env.CONFIG_ENCRYPTION_KEY,
+    process.env.CONFIG_ENCRYPTION_KEY_FILE,
+  );
+  if (dedicated) return dedicated;
+  return getRequiredRuntimeSecret(
+    process.env.BETTER_AUTH_SECRET,
+    process.env.BETTER_AUTH_SECRET_FILE,
+    "Configuration encryption key",
+  );
 }
 
 function deriveKey(secret: string) {
