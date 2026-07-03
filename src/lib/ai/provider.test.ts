@@ -1,13 +1,13 @@
 import { describe, expect, it } from "vitest";
 
-import { resolveAiProviderConfig } from "@/lib/ai/provider";
+import { normalizeAiProviderConfig } from "@/lib/settings/service";
 
-describe("resolveAiProviderConfig", () => {
+describe("normalizeAiProviderConfig", () => {
   it("uses the Volcengine Ark preset and official base URL", () => {
-    const config = resolveAiProviderConfig({
-      AI_PROVIDER: "volcengine",
-      ARK_API_KEY: "test-key",
-      ARK_MODEL: "ep-test-endpoint",
+    const config = normalizeAiProviderConfig({
+      kind: "volcengine",
+      apiKey: "test-key",
+      model: "ep-test-endpoint",
     });
 
     expect(config).toMatchObject({
@@ -19,11 +19,12 @@ describe("resolveAiProviderConfig", () => {
     });
   });
 
-  it("detects Ark variables without requiring an explicit provider", () => {
-    const config = resolveAiProviderConfig({
-      ARK_API_KEY: "test-key",
-      ARK_MODEL: "doubao-test-model",
-      ARK_BASE_URL: "https://ark.example.com/api/v3",
+  it("uses a saved custom Ark base URL", () => {
+    const config = normalizeAiProviderConfig({
+      kind: "volcengine",
+      apiKey: "test-key",
+      model: "doubao-test-model",
+      baseUrl: "https://ark.example.com/api/v3",
     });
 
     expect(config.kind).toBe("volcengine");
@@ -31,11 +32,12 @@ describe("resolveAiProviderConfig", () => {
   });
 
   it("keeps generic OpenAI-compatible providers working", () => {
-    const config = resolveAiProviderConfig({
-      AI_PROVIDER_NAME: "Example Provider",
-      AI_BASE_URL: "https://example.com/v1",
-      AI_API_KEY: "test-key",
-      AI_MODEL: "example-model",
+    const config = normalizeAiProviderConfig({
+      kind: "openai-compatible",
+      providerName: "Example Provider",
+      baseUrl: "https://example.com/v1",
+      apiKey: "test-key",
+      model: "example-model",
     });
 
     expect(config).toMatchObject({

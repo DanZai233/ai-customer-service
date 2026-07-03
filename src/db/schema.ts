@@ -26,6 +26,10 @@ export const messageRoleEnum = pgEnum("message_role", [
   "agent",
   "system",
 ]);
+export const aiProviderKindEnum = pgEnum("ai_provider_kind", [
+  "volcengine",
+  "openai-compatible",
+]);
 
 export const organizations = pgTable(
   "organizations",
@@ -148,3 +152,36 @@ export const orders = pgTable(
     index("orders_customer_placed_idx").on(table.customerId, table.placedAt),
   ],
 );
+
+export const organizationSettings = pgTable("organization_settings", {
+  organizationId: text()
+    .primaryKey()
+    .references(() => organizations.id, { onDelete: "cascade" }),
+  timezone: text().default("Asia/Shanghai").notNull(),
+  language: text().default("zh-CN").notNull(),
+  businessHours: text().default("09:00 - 21:00").notNull(),
+  autoResolve: boolean().default(true).notNull(),
+  maskSensitive: boolean().default(true).notNull(),
+  updatedBy: text(),
+  createdAt: timestamp({ withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp({ withTimezone: true }).defaultNow().notNull(),
+});
+
+export const aiProviderSettings = pgTable("ai_provider_settings", {
+  organizationId: text()
+    .primaryKey()
+    .references(() => organizations.id, { onDelete: "cascade" }),
+  kind: aiProviderKindEnum().default("volcengine").notNull(),
+  providerName: text().default("火山引擎方舟").notNull(),
+  baseUrl: text().default("https://ark.cn-beijing.volces.com/api/v3").notNull(),
+  model: text(),
+  apiKeyEncrypted: text(),
+  apiKeyHint: text(),
+  enabled: boolean().default(true).notNull(),
+  lastTestedAt: timestamp({ withTimezone: true }),
+  lastTestStatus: text(),
+  lastTestMessage: text(),
+  updatedBy: text(),
+  createdAt: timestamp({ withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp({ withTimezone: true }).defaultNow().notNull(),
+});

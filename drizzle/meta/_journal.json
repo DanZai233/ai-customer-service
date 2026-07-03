@@ -15,6 +15,13 @@
       "when": 1783084119218,
       "tag": "0001_perpetual_harrier",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1783087088790,
+      "tag": "0002_large_karnak",
+      "breakpoints": true
     }
   ]
 }

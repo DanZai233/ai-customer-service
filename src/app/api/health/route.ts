@@ -3,10 +3,10 @@ import { getAiProviderStatus } from "@/lib/ai/provider";
 import { getDataMode } from "@/lib/conversations/repository";
 
 export async function GET() {
-  const ai = getAiProviderStatus();
   const dataMode = getDataMode();
 
   try {
+    const ai = await getAiProviderStatus("org-luma");
     const databaseConnected = await checkDatabaseConnection();
     return Response.json({
       status: "ok",
@@ -21,8 +21,8 @@ export async function GET() {
     return Response.json(
       {
         status: "degraded",
-        aiMode: ai.mode,
-        aiModel: ai.model,
+        aiMode: "unavailable",
+        aiModel: null,
         dataMode,
         databaseConnected: false,
         timestamp: new Date().toISOString(),

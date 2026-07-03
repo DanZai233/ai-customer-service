@@ -39,6 +39,7 @@ npm run build
 - Docker、健康检查与 GitHub Actions CI
 - PostgreSQL 持久化、Drizzle SQL 迁移与会话读写 API
 - Better Auth 自托管登录、数据库会话与五级客服 RBAC
+- PostgreSQL 运行时配置中心与加密的模型密钥存储
 
 详细边界和生产化替换点参见 [系统架构](docs/architecture.md)、[外部服务接入](docs/integrations.md) 与 [大模型配置](docs/model-configuration.md)。
 

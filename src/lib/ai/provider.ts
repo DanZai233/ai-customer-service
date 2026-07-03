@@ -1,58 +1,17 @@
 import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
+import { generateText } from "ai";
+import { createHash } from "node:crypto";
 
-const defaultArkBaseURL = "https://ark.cn-beijing.volces.com/api/v3";
-
-type AiProviderConfig = {
-  kind: "volcengine" | "openai-compatible";
-  provider: string;
-  baseURL: string | null;
-  apiKey: string | null;
-  model: string | null;
-  configured: boolean;
-};
+import { getAiProviderConfig } from "@/lib/settings/service";
+import type { AiProviderConfig } from "@/lib/settings/types";
 
 let providerCache: {
   key: string;
   provider: ReturnType<typeof createOpenAICompatible>;
 } | null = null;
 
-export function resolveAiProviderConfig(
-  environment: Record<string, string | undefined> = process.env,
-): AiProviderConfig {
-  const providerId = environment.AI_PROVIDER?.trim().toLowerCase();
-  const useVolcengine =
-    providerId === "volcengine" ||
-    Boolean(environment.ARK_API_KEY?.trim() || environment.ARK_MODEL?.trim());
-
-  if (useVolcengine) {
-    const baseURL = environment.ARK_BASE_URL?.trim() || defaultArkBaseURL;
-    const apiKey = environment.ARK_API_KEY?.trim() || null;
-    const model = environment.ARK_MODEL?.trim() || null;
-    return {
-      kind: "volcengine",
-      provider: "火山引擎方舟",
-      baseURL,
-      apiKey,
-      model,
-      configured: Boolean(baseURL && apiKey && model),
-    };
-  }
-
-  const baseURL = environment.AI_BASE_URL?.trim() || null;
-  const apiKey = environment.AI_API_KEY?.trim() || null;
-  const model = environment.AI_MODEL?.trim() || null;
-  return {
-    kind: "openai-compatible",
-    provider: environment.AI_PROVIDER_NAME?.trim() || "OpenAI Compatible",
-    baseURL,
-    apiKey,
-    model,
-    configured: Boolean(baseURL && apiKey && model),
-  };
-}
-
-export function getAiProviderStatus() {
-  const config = resolveAiProviderConfig();
+export async function getAiProviderStatus(organizationId: string) {
+  const config = await getAiProviderConfig(organizationId);
 
   return {
     kind: config.kind,
@@ -64,16 +23,14 @@ export function getAiProviderStatus() {
   };
 }
 
-export function getAiModel() {
-  const config = resolveAiProviderConfig();
-
-  if (!config.baseURL || !config.apiKey || !config.model) return null;
+function createAiModel(config: AiProviderConfig) {
+  if (!config.configured || !config.apiKey || !config.model) return null;
 
   const cacheKey = [
     config.kind,
     config.provider,
     config.baseURL,
-    config.apiKey,
+    createHash("sha256").update(config.apiKey).digest("hex"),
   ].join(":");
   const provider =
     providerCache?.key === cacheKey
@@ -93,4 +50,28 @@ export function getAiModel() {
   }
 
   return provider(config.model);
+}
+
+export async function getAiModel(organizationId: string) {
+  return createAiModel(await getAiProviderConfig(organizationId));
+}
+
+export async function testAiProviderConnection(organizationId: string) {
+  const config = await getAiProviderConfig(organizationId);
+  const model = createAiModel(config);
+  if (!model) {
+    throw new Error("请先填写 Base URL、Model ID 和 API Key 并启用模型");
+  }
+
+  const result = await generateText({
+    model,
+    prompt: "这是一次客服系统连通性测试。请只回复 OK。",
+    maxOutputTokens: 8,
+  });
+
+  return {
+    provider: config.provider,
+    model: config.model,
+    response: result.text.trim().slice(0, 80),
+  };
 }

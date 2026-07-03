@@ -12,10 +12,13 @@ export const metadata: Metadata = {
 export const dynamic = "force-dynamic";
 
 export default async function SettingsPage() {
-  await requirePageAuth("settings.read");
+  const { user } = await requirePageAuth("settings.read");
   return (
     <SystemSettings
-      systemStatus={{ ai: getAiProviderStatus(), dataMode: getDataMode() }}
+      systemStatus={{
+        ai: await getAiProviderStatus(user.organizationId),
+        dataMode: getDataMode(),
+      }}
     />
   );
 }

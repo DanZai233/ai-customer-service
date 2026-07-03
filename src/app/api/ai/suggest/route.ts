@@ -48,7 +48,7 @@ export async function POST(request: Request) {
   const { messages }: { messages: UIMessage[] } = await request.json();
   const query = latestUserText(messages);
   const context = buildKnowledgeContext(query);
-  const model = getAiModel();
+  const model = await getAiModel(authorization.context.user.organizationId);
 
   if (!model) {
     const text = demoSuggestion(query, context);

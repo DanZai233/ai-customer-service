@@ -3,14 +3,17 @@ import { eq } from "drizzle-orm";
 import { getDatabase, closeDatabase } from "./client";
 import { user as authUser } from "./auth-schema";
 import {
+  aiProviderSettings,
   conversations as conversationTable,
   customers,
   messages,
   orders,
   organizations,
+  organizationSettings,
 } from "./schema";
 import { conversations as demoConversations } from "../lib/demo-data";
 import { getAuth } from "../lib/auth/server";
+import { updateAiProviderSettings } from "../lib/settings/service";
 
 const organizationId = "org-luma";
 
@@ -32,6 +35,11 @@ async function seed() {
     await transaction
       .insert(organizations)
       .values({ id: organizationId, name: "Luma 客服中心", slug: "luma" })
+      .onConflictDoNothing();
+
+    await transaction
+      .insert(organizationSettings)
+      .values({ organizationId })
       .onConflictDoNothing();
 
     for (const [index, conversation] of demoConversations.entries()) {
@@ -106,6 +114,47 @@ async function seed() {
       }
     }
   });
+
+  const existingAiSettings = await db
+    .select({ organizationId: aiProviderSettings.organizationId })
+    .from(aiProviderSettings)
+    .where(eq(aiProviderSettings.organizationId, organizationId))
+    .limit(1);
+  const legacyArkApiKey = process.env.ARK_API_KEY?.trim();
+  const legacyArkModel = process.env.ARK_MODEL?.trim();
+  const legacyGenericApiKey = process.env.AI_API_KEY?.trim();
+  const legacyGenericModel = process.env.AI_MODEL?.trim();
+
+  if (existingAiSettings.length === 0 && legacyArkApiKey && legacyArkModel) {
+    await updateAiProviderSettings(organizationId, "seed", {
+      kind: "volcengine",
+      provider: "火山引擎方舟",
+      baseURL:
+        process.env.ARK_BASE_URL?.trim() ||
+        "https://ark.cn-beijing.volces.com/api/v3",
+      model: legacyArkModel,
+      enabled: true,
+      apiKey: legacyArkApiKey,
+    });
+    console.log("Imported legacy Volcengine AI configuration into PostgreSQL.");
+  } else if (
+    existingAiSettings.length === 0 &&
+    legacyGenericApiKey &&
+    legacyGenericModel &&
+    process.env.AI_BASE_URL?.trim()
+  ) {
+    await updateAiProviderSettings(organizationId, "seed", {
+      kind: "openai-compatible",
+      provider: process.env.AI_PROVIDER_NAME?.trim() || "OpenAI Compatible",
+      baseURL: process.env.AI_BASE_URL.trim(),
+      model: legacyGenericModel,
+      enabled: true,
+      apiKey: legacyGenericApiKey,
+    });
+    console.log(
+      "Imported legacy OpenAI-compatible configuration into PostgreSQL.",
+    );
+  }
 
   const adminEmail = process.env.AUTH_SEED_EMAIL?.trim();
   const adminPassword = process.env.AUTH_SEED_PASSWORD;
