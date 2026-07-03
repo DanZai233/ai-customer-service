@@ -8,7 +8,7 @@ import {
 
 import { getAiModel } from "@/lib/ai/provider";
 import { authorizeRequest } from "@/lib/auth/context";
-import { buildKnowledgeContext } from "@/lib/knowledge-data";
+import { buildKnowledgeContext } from "@/lib/knowledge/repository";
 
 export const maxDuration = 30;
 
@@ -47,7 +47,10 @@ export async function POST(request: Request) {
 
   const { messages }: { messages: UIMessage[] } = await request.json();
   const query = latestUserText(messages);
-  const context = buildKnowledgeContext(query);
+  const context = await buildKnowledgeContext(
+    authorization.context.user.organizationId,
+    query,
+  );
   const model = await getAiModel(authorization.context.user.organizationId);
 
   if (!model) {

@@ -31,12 +31,12 @@ flowchart LR
 - `src/lib/ai/provider.ts`：OpenAI 兼容模型适配器。
 - `src/lib/settings`：组织级运行配置、验证和敏感密钥加密。
 - `src/app/api/settings`：受 RBAC 保护的运行时配置与连接测试接口。
-- `src/lib/knowledge-data.ts`：演示检索内核；后续可替换为 RAGFlow、FastGPT 或向量数据库。
+- `src/lib/knowledge`：PostgreSQL 知识仓储、发布工作流与中文检索内核。
 
 ## 生产化替换点
 
-1. 当前联系人、会话、消息与订单已由 PostgreSQL 持久化；知识、团队配置与审计日志仍需迁移。
-2. 将本地关键词检索替换为 FastGPT/RAGFlow API 或 pgvector 混合检索。
+1. 当前联系人、会话、消息、订单、知识与运行配置已由 PostgreSQL 持久化；团队配置与审计日志仍需迁移。
+2. 文档规模增长后，将当前中文关键词检索升级为 FastGPT/RAGFlow API 或 pgvector 混合检索。
 3. 通过 Chatwoot Webhook/API 或自建渠道网关接入真实消息。
 4. 对 Webhook 加签名验证、幂等键、重试队列和死信处理。
 5. 组织级认证和 RBAC 已接入；仍需密钥托管、登录审计、SSO 和数据保留策略。

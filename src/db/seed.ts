@@ -6,6 +6,7 @@ import {
   aiProviderSettings,
   conversations as conversationTable,
   customers,
+  knowledgeDocuments,
   messages,
   orders,
   organizations,
@@ -13,6 +14,7 @@ import {
 } from "./schema";
 import { conversations as demoConversations } from "../lib/demo-data";
 import { getAuth } from "../lib/auth/server";
+import { seedKnowledgeDocuments } from "../lib/knowledge/seed-data";
 import { getOptionalRuntimeSecret } from "../lib/runtime-secrets";
 import { updateAiProviderSettings } from "../lib/settings/service";
 
@@ -41,6 +43,19 @@ async function seed() {
     await transaction
       .insert(organizationSettings)
       .values({ organizationId })
+      .onConflictDoNothing();
+
+    await transaction
+      .insert(knowledgeDocuments)
+      .values(
+        seedKnowledgeDocuments.map((document) => ({
+          ...document,
+          organizationId,
+          createdBy: "seed",
+          updatedBy: "seed",
+          publishedAt: document.status === "published" ? new Date() : undefined,
+        })),
+      )
       .onConflictDoNothing();
 
     for (const [index, conversation] of demoConversations.entries()) {

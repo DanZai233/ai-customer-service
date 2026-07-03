@@ -30,6 +30,16 @@ export const aiProviderKindEnum = pgEnum("ai_provider_kind", [
   "volcengine",
   "openai-compatible",
 ]);
+export const knowledgeDocumentStatusEnum = pgEnum("knowledge_document_status", [
+  "draft",
+  "published",
+  "archived",
+]);
+export const knowledgeDocumentSourceEnum = pgEnum("knowledge_document_source", [
+  "manual",
+  "document",
+  "website",
+]);
 
 export const organizations = pgTable(
   "organizations",
@@ -185,3 +195,56 @@ export const aiProviderSettings = pgTable("ai_provider_settings", {
   createdAt: timestamp({ withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp({ withTimezone: true }).defaultNow().notNull(),
 });
+
+export const knowledgeDocuments = pgTable(
+  "knowledge_documents",
+  {
+    id: text().primaryKey(),
+    organizationId: text()
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    title: text().notNull(),
+    category: text().notNull(),
+    content: text().notNull(),
+    status: knowledgeDocumentStatusEnum().default("draft").notNull(),
+    source: knowledgeDocumentSourceEnum().default("manual").notNull(),
+    sourceUrl: text(),
+    hitCount: integer().default(0).notNull(),
+    createdBy: text(),
+    updatedBy: text(),
+    publishedAt: timestamp({ withTimezone: true }),
+    createdAt: timestamp({ withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp({ withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    index("knowledge_documents_org_status_updated_idx").on(
+      table.organizationId,
+      table.status,
+      table.updatedAt,
+    ),
+  ],
+);
+
+export const knowledgeRetrievals = pgTable(
+  "knowledge_retrievals",
+  {
+    id: text().primaryKey(),
+    organizationId: text()
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    documentId: text()
+      .notNull()
+      .references(() => knowledgeDocuments.id, { onDelete: "cascade" }),
+    query: text().notNull(),
+    scoreBasisPoints: integer().notNull(),
+    source: text().notNull(),
+    createdAt: timestamp({ withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    index("knowledge_retrievals_org_created_idx").on(
+      table.organizationId,
+      table.createdAt,
+    ),
+    index("knowledge_retrievals_document_idx").on(table.documentId),
+  ],
+);
