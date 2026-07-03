@@ -7,6 +7,7 @@ import {
   BookOpenText,
   Bot,
   Cable,
+  CodeXml,
   LogOut,
   Menu,
   MessageSquareText,
@@ -74,6 +75,12 @@ const navigation = [
     permission: "channels.manage",
   },
   { href: "/team", label: "团队", icon: Users, permission: "team.read" },
+  {
+    href: "/developer",
+    label: "开发者",
+    icon: CodeXml,
+    permission: "settings.read",
+  },
 ] satisfies Array<{
   href: string;
   label: string;

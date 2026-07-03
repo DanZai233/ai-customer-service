@@ -33,3 +33,9 @@ npm run db:seed
 ## 健康检查
 
 `GET /api/health` 返回服务状态以及当前 AI 模式，可供容器编排和监控系统探活。
+
+## 开放 API
+
+管理员可在“开发者中心”创建独立 API Key，并一键复制 cURL、JavaScript、Python 或 Next.js 服务端示例。正式契约由 `GET /api/openapi.json` 提供，公共接口统一位于 `/api/v1`。
+
+API Key 只能保存在服务端。网站或 App 应通过自有服务端代理请求，不能把密钥写入公开 JavaScript 包或客户端安装包。

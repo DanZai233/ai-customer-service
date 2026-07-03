@@ -13,6 +13,18 @@ export const apiKeyScopes = [
 
 export type ApiKeyScope = (typeof apiKeyScopes)[number];
 
+export type PublicApiKey = {
+  id: string;
+  name: string;
+  prefix: string;
+  hint: string;
+  scopes: ApiKeyScope[];
+  status: "active" | "expired" | "revoked";
+  lastUsedAt: string | null;
+  expiresAt: string | null;
+  createdAt: string;
+};
+
 export class ApiAuthenticationError extends Error {
   constructor(
     public readonly status: number,
@@ -48,7 +60,7 @@ export function readBearerToken(request: Request) {
   return token;
 }
 
-function toPublicApiKey(row: typeof apiKeys.$inferSelect) {
+function toPublicApiKey(row: typeof apiKeys.$inferSelect): PublicApiKey {
   return {
     id: row.id,
     name: row.name,
