@@ -29,6 +29,8 @@ flowchart LR
 - `src/lib/auth`：自托管认证、租户上下文与角色权限。
 - `src/app/api/auth`：Better Auth 登录和会话接口。
 - `src/lib/ai/provider.ts`：OpenAI 兼容模型适配器。
+- `src/lib/settings`：组织级运行配置、验证和敏感密钥加密。
+- `src/app/api/settings`：受 RBAC 保护的运行时配置与连接测试接口。
 - `src/lib/knowledge-data.ts`：演示检索内核；后续可替换为 RAGFlow、FastGPT 或向量数据库。
 
 ## 生产化替换点
@@ -44,4 +46,4 @@ flowchart LR
 - 模型只能引用已发布知识。
 - 资料不足时拒绝猜测并建议人工核实。
 - 退款、合同、账户安全和具体赔付必须人工确认。
-- 浏览器不保存模型密钥，密钥只通过服务端环境变量注入。
+- 浏览器不保存或读取模型密钥，密钥由服务端加密后按组织存入 PostgreSQL。

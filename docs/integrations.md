@@ -2,17 +2,11 @@
 
 ## AI 模型
 
-系统使用 AI SDK 的 OpenAI Compatible Provider。复制 `.env.example` 为 `.env.local` 后配置：
-
-```bash
-AI_BASE_URL=https://your-provider.example/v1
-AI_API_KEY=your-secret
-AI_MODEL=your-model-id
-```
+系统使用 AI SDK 的 OpenAI Compatible Provider。管理员在“设置 → AI 配置”中保存 Base URL、API Key 和 Model ID，保存后立即生效。
 
 未配置时 `/api/ai/suggest` 自动进入演示模式，方便本地开发和界面验收。
 
-DeepSeek、通义千问和 Ollama 的完整样例参见 [大模型配置](model-configuration.md)。
+火山引擎方舟、DeepSeek、通义千问和 Ollama 的完整样例参见 [大模型配置](model-configuration.md)。
 
 ## PostgreSQL
 

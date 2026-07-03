@@ -20,12 +20,13 @@
 
 ## 模型供应商
 
-- 火山引擎方舟：`AI_PROVIDER=volcengine` + `ARK_*`。
-- 其他 OpenAI 兼容服务：`AI_BASE_URL`、`AI_API_KEY`、`AI_MODEL`。
+- 火山引擎方舟：后台保存 Base URL、Model ID / Endpoint ID 和 API Key。
+- 其他 OpenAI 兼容服务：后台保存供应商名称、Base URL、Model ID 和 API Key。
+- 配置按组织存储，保存后下一次请求立即生效。
 - 详细配置见 `docs/model-configuration.md`。
 
 ## 安全边界
 
-- API Key 只读取服务端环境变量，不返回浏览器。
+- API Key 加密保存到 PostgreSQL，不向浏览器返回明文或密文。
 - 退款、合同、账户安全和赔付必须提示人工确认。
 - 当前知识上下文仍为本地检索，生产环境需增加引用记录、评测和成本审计。
