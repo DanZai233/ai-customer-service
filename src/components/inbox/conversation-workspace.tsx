@@ -361,6 +361,13 @@ export function ConversationWorkspace() {
     setDraft("");
   }
 
+  function draftAiReply() {
+    const reply = selected.lastMessage.includes("物流")
+      ? "你好，抱歉让你久等了。我已经核对到物流信息超过 48 小时没有更新，现已为你创建承运商核查单。我们会在 24 小时内同步最新结果。"
+      : "你好，我已经收到你的问题。为了避免提供不准确的信息，我会先核对相关记录，再尽快给你明确答复。";
+    setDraft(reply);
+  }
+
   return (
     <div className="flex h-full min-h-0">
       <aside className="hidden h-full w-80 shrink-0 border-r lg:block">
@@ -556,7 +563,12 @@ export function ConversationWorkspace() {
               <Button variant="ghost" size="icon-sm" aria-label="插入快捷回复">
                 <FileText className="size-4" />
               </Button>
-              <Button variant="ghost" size="sm" className="text-primary">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-primary"
+                onClick={draftAiReply}
+              >
                 <Sparkles className="size-4" />
                 AI 润色
               </Button>
