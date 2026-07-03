@@ -18,6 +18,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 type SystemStatus = {
   ai: {
+    kind: "volcengine" | "openai-compatible";
     configured: boolean;
     mode: "provider" | "demo";
     provider: string;
@@ -35,6 +36,18 @@ export function SystemSettings({
   const [saved, setSaved] = useState(false);
   const [autoResolve, setAutoResolve] = useState(true);
   const [maskSensitive, setMaskSensitive] = useState(true);
+  const aiVariableNames =
+    systemStatus.ai.kind === "volcengine"
+      ? {
+          baseURL: "ARK_BASE_URL",
+          model: "ARK_MODEL",
+          apiKey: "ARK_API_KEY",
+        }
+      : {
+          baseURL: "AI_BASE_URL",
+          model: "AI_MODEL",
+          apiKey: "AI_API_KEY",
+        };
 
   function save() {
     setSaved(true);
@@ -149,18 +162,18 @@ export function SystemSettings({
               </p>
               <div className="mt-5 grid gap-4 sm:grid-cols-2">
                 <label className="space-y-2 text-sm font-medium">
-                  AI_BASE_URL
+                  {aiVariableNames.baseURL}
                   <Input
                     value={systemStatus.ai.baseURL ?? "尚未配置"}
                     readOnly
                   />
                 </label>
                 <label className="space-y-2 text-sm font-medium">
-                  AI_MODEL
+                  {aiVariableNames.model}
                   <Input value={systemStatus.ai.model ?? "尚未配置"} readOnly />
                 </label>
                 <label className="space-y-2 text-sm font-medium sm:col-span-2">
-                  AI_API_KEY
+                  {aiVariableNames.apiKey}
                   <Input
                     type="password"
                     value={

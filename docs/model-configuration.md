@@ -12,6 +12,23 @@ cp .env.example .env.local
 
 修改 `.env.local` 后重启开发服务。访问 `/settings` 的“AI 配置”页确认状态，或请求 `/api/health` 查看 `aiMode` 和 `aiModel`。
 
+## 火山引擎方舟（豆包）
+
+```dotenv
+AI_PROVIDER=volcengine
+ARK_BASE_URL=https://ark.cn-beijing.volces.com/api/v3
+ARK_API_KEY=你的方舟 API Key
+ARK_MODEL=你的 Model ID 或 Endpoint ID
+```
+
+`ARK_BASE_URL` 可省略，系统默认使用北京区域地址。`ARK_MODEL` 可填写已开通服务的 Model ID；需要多应用隔离或更细粒度管理时，也可填写方舟控制台创建的 `ep-...` Endpoint ID。
+
+Docker 运行时修改配置后重新创建 Web 容器：
+
+```bash
+docker compose up -d --no-build --force-recreate luma
+```
+
 ## DeepSeek
 
 ```dotenv

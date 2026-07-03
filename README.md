@@ -34,6 +34,7 @@ npm run build
 - AI/人工接管、回复发送和 AI 草稿
 - 知识管理、检索测试和草稿发布边界
 - AI SDK 6 流式回复接口与 OpenAI 兼容模型适配
+- 火山引擎方舟（豆包）专用环境变量预设
 - 数据分析、渠道配置、团队负载和系统设置
 - Docker、健康检查与 GitHub Actions CI
 - PostgreSQL 持久化、Drizzle SQL 迁移与会话读写 API
