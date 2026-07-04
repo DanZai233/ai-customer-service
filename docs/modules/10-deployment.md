@@ -22,6 +22,21 @@
 
 直接执行 `docker compose up -d --build` 也可以启动；初始密码保存在仅初始化/迁移服务挂载的 `luma-bootstrap` 卷。
 
+## 生产端口与访问地址
+
+生产部署可通过项目目录下的 `.env` 设置端口、绑定地址和数据库口令，无需修改 Compose 文件：
+
+```dotenv
+LUMA_PORT=39002
+LUMA_BIND_ADDRESS=0.0.0.0
+APP_BASE_URL=http://example.com:39002
+POSTGRES_PORT=15432
+POSTGRES_BIND_ADDRESS=127.0.0.1
+POSTGRES_PASSWORD=请使用随机强口令
+```
+
+`APP_BASE_URL` 必须与浏览器实际访问地址一致，否则 Better Auth 会拒绝登录来源。PostgreSQL 默认只绑定 `127.0.0.1`，容器间仍通过内部 Docker 网络访问。
+
 ## 启动顺序
 
 1. `key-init` 创建或复用持久化根密钥。

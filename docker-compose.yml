@@ -30,9 +30,9 @@ services:
     environment:
       POSTGRES_DB: luma_customer_service
       POSTGRES_USER: luma
-      POSTGRES_PASSWORD: luma
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-luma}
     ports:
-      - "${POSTGRES_PORT:-5432}:5432"
+      - "${POSTGRES_BIND_ADDRESS:-127.0.0.1}:${POSTGRES_PORT:-5432}:5432"
     volumes:
       - luma-postgres:/var/lib/postgresql/data
     healthcheck:
@@ -48,8 +48,8 @@ services:
       context: .
       target: migrator
     environment:
-      DATABASE_URL: postgresql://luma:luma@database:5432/luma_customer_service
-      BETTER_AUTH_URL: http://localhost:${LUMA_PORT:-3000}
+      DATABASE_URL: postgresql://luma:${POSTGRES_PASSWORD:-luma}@database:5432/luma_customer_service
+      BETTER_AUTH_URL: ${APP_BASE_URL:-http://localhost:3000}
       BETTER_AUTH_SECRET_FILE: /run/luma/auth.key
       CONFIG_ENCRYPTION_KEY_FILE: /run/luma/config.key
       AUTH_ALLOW_SIGN_UP: "false"
@@ -69,10 +69,10 @@ services:
     image: luma-customer-service-luma
     build: .
     ports:
-      - "${LUMA_PORT:-3000}:3000"
+      - "${LUMA_BIND_ADDRESS:-0.0.0.0}:${LUMA_PORT:-3000}:3000"
     environment:
-      DATABASE_URL: postgresql://luma:luma@database:5432/luma_customer_service
-      BETTER_AUTH_URL: http://localhost:${LUMA_PORT:-3000}
+      DATABASE_URL: postgresql://luma:${POSTGRES_PASSWORD:-luma}@database:5432/luma_customer_service
+      BETTER_AUTH_URL: ${APP_BASE_URL:-http://localhost:3000}
       BETTER_AUTH_SECRET_FILE: /run/luma/auth.key
       CONFIG_ENCRYPTION_KEY_FILE: /run/luma/config.key
       AUTH_ALLOW_SIGN_UP: "false"

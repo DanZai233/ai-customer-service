@@ -14,7 +14,8 @@ docker build -t luma-customer-service-luma .
 docker compose up -d --no-build
 
 port="${LUMA_PORT:-3000}"
-printf '\nLuma is running at http://localhost:%s\n' "$port"
+base_url="${APP_BASE_URL:-http://localhost:$port}"
+printf '\nLuma is running at %s\n' "$base_url"
 
 if [ "$fresh_install" = "true" ]; then
   password=$(
