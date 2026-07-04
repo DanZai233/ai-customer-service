@@ -1,0 +1,48 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1783082415337,
+      "tag": "0000_modern_magik",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1783084119218,
+      "tag": "0001_perpetual_harrier",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1783087088790,
+      "tag": "0002_large_karnak",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1783105636680,
+      "tag": "0003_stormy_boomerang",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1783107280926,
+      "tag": "0004_even_morg",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1783108083486,
+      "tag": "0005_aspiring_annihilus",
+      "breakpoints": true
+    }
+  ]
+}

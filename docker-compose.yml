@@ -1,0 +1,98 @@
+name: luma-customer-service
+
+services:
+  key-init:
+    image: alpine:3.21
+    command:
+      - /bin/sh
+      - -c
+      - |
+        set -eu
+        umask 077
+        if [ ! -s /run/luma/auth.key ]; then
+          head -c 48 /dev/urandom | base64 | tr -d '\n' > /run/luma/auth.key
+        fi
+        if [ ! -s /run/luma/config.key ]; then
+          head -c 48 /dev/urandom | base64 | tr -d '\n' > /run/luma/config.key
+        fi
+        if [ ! -s /run/luma-bootstrap/admin.password ]; then
+          head -c 48 /dev/urandom | base64 | tr -dc 'A-Za-z0-9' | cut -c1-20 > /run/luma-bootstrap/admin.password
+        fi
+        chmod 0444 /run/luma/auth.key /run/luma/config.key
+        chmod 0400 /run/luma-bootstrap/admin.password
+    volumes:
+      - luma-secrets:/run/luma
+      - luma-bootstrap:/run/luma-bootstrap
+    restart: "no"
+
+  database:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: luma_customer_service
+      POSTGRES_USER: luma
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-luma}
+    ports:
+      - "${POSTGRES_BIND_ADDRESS:-127.0.0.1}:${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - luma-postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U luma -d luma_customer_service"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+
+  migrate:
+    image: luma-customer-service-migrate
+    build:
+      context: .
+      target: migrator
+    environment:
+      DATABASE_URL: postgresql://luma:${POSTGRES_PASSWORD:-luma}@database:5432/luma_customer_service
+      BETTER_AUTH_URL: ${APP_BASE_URL:-http://localhost:3000}
+      BETTER_AUTH_SECRET_FILE: /run/luma/auth.key
+      CONFIG_ENCRYPTION_KEY_FILE: /run/luma/config.key
+      AUTH_ALLOW_SIGN_UP: "false"
+      AUTH_SEED_EMAIL: ${AUTH_SEED_EMAIL:-admin@luma.local}
+      AUTH_SEED_PASSWORD_FILE: /run/luma-bootstrap/admin.password
+    volumes:
+      - luma-secrets:/run/luma:ro
+      - luma-bootstrap:/run/luma-bootstrap:ro
+    depends_on:
+      key-init:
+        condition: service_completed_successfully
+      database:
+        condition: service_healthy
+    restart: "no"
+
+  luma:
+    image: luma-customer-service-luma
+    build: .
+    ports:
+      - "${LUMA_BIND_ADDRESS:-0.0.0.0}:${LUMA_PORT:-3000}:3000"
+    environment:
+      DATABASE_URL: postgresql://luma:${POSTGRES_PASSWORD:-luma}@database:5432/luma_customer_service
+      BETTER_AUTH_URL: ${APP_BASE_URL:-http://localhost:3000}
+      BETTER_AUTH_SECRET_FILE: /run/luma/auth.key
+      CONFIG_ENCRYPTION_KEY_FILE: /run/luma/config.key
+      AUTH_ALLOW_SIGN_UP: "false"
+    volumes:
+      - luma-secrets:/run/luma:ro
+    depends_on:
+      key-init:
+        condition: service_completed_successfully
+      migrate:
+        condition: service_completed_successfully
+    healthcheck:
+      test:
+        ["CMD", "wget", "--spider", "-q", "http://127.0.0.1:3000/api/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
+    restart: unless-stopped
+
+volumes:
+  luma-postgres:
+  luma-secrets:
+  luma-bootstrap:
