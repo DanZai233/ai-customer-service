@@ -22,3 +22,9 @@ export const newMessageSchema = z
     externalId: z.string().trim().min(1).max(160).optional(),
   })
   .strict();
+
+export const agentReplySchema = z
+  .object({
+    content: z.string().trim().min(1).max(10000),
+  })
+  .strict();

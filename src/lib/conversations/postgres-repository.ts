@@ -97,6 +97,7 @@ export function createPostgresConversationRepository(): ConversationRepository {
       return {
         id: conversation.id,
         customer: {
+          id: customer.id,
           name: customer.name,
           initials: customer.initials,
           phone: customer.phone,
@@ -200,7 +201,17 @@ export function createPostgresConversationRepository(): ConversationRepository {
         });
         await transaction
           .update(conversations)
-          .set({ lastMessage: message.content, updatedAt: now })
+          .set({
+            lastMessage: message.content,
+            updatedAt: now,
+            ...(message.role === "agent" && message.sender
+              ? {
+                  assignee: message.sender,
+                  aiManaged: false,
+                  status: "open" as const,
+                }
+              : {}),
+          })
           .where(eq(conversations.id, conversationId));
       });
 

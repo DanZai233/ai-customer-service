@@ -12,6 +12,7 @@ export const conversations: Conversation[] = [
   {
     id: "conv-1048",
     customer: {
+      id: "customer-1048",
       name: "林晓雨",
       initials: "林",
       phone: "138 **** 2174",
@@ -67,6 +68,7 @@ export const conversations: Conversation[] = [
   {
     id: "conv-1047",
     customer: {
+      id: "customer-1047",
       name: "陈屿",
       initials: "陈",
       phone: "186 **** 9021",
@@ -96,6 +98,7 @@ export const conversations: Conversation[] = [
   {
     id: "conv-1046",
     customer: {
+      id: "customer-1046",
       name: "许知远",
       initials: "许",
       phone: "177 **** 1105",
@@ -132,6 +135,7 @@ export const conversations: Conversation[] = [
   {
     id: "conv-1045",
     customer: {
+      id: "customer-1045",
       name: "吴晨",
       initials: "吴",
       phone: "151 **** 6320",
@@ -161,6 +165,7 @@ export const conversations: Conversation[] = [
   {
     id: "conv-1044",
     customer: {
+      id: "customer-1044",
       name: "孙可",
       initials: "孙",
       phone: "133 **** 4489",
