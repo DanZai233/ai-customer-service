@@ -2,24 +2,20 @@
 
 import { useMemo, useState } from "react";
 import {
-  Archive,
   ArrowUp,
   Bot,
   Check,
-  ChevronDown,
   CircleUserRound,
   Clock3,
-  FileText,
   Globe2,
   Mail,
   Menu,
   MessageCircleMore,
   MoreHorizontal,
-  Paperclip,
   Phone,
+  RotateCcw,
   Search,
   Sparkles,
-  UserRoundCheck,
 } from "lucide-react";
 
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -58,18 +54,27 @@ const channelMeta = {
 function ConversationList({
   conversations,
   selectedId,
+  agentName,
   onSelect,
 }: {
   conversations: Conversation[];
   selectedId: string;
+  agentName: string;
   onSelect: (id: string) => void;
 }) {
   const [query, setQuery] = useState("");
-  const filtered = conversations.filter((conversation) =>
-    `${conversation.customer.name}${conversation.lastMessage}`
-      .toLowerCase()
-      .includes(query.toLowerCase()),
-  );
+  const [scope, setScope] = useState("all");
+  const filtered = conversations.filter((conversation) => {
+    const matchesScope =
+      scope === "all" ||
+      (scope === "mine" && conversation.assignee === agentName) ||
+      (scope === "unassigned" && conversation.assignee === "未分配");
+    const matchesQuery =
+      `${conversation.customer.name}${conversation.lastMessage}`
+        .toLowerCase()
+        .includes(query.toLowerCase());
+    return matchesScope && matchesQuery;
+  });
 
   return (
     <div className="flex h-full min-h-0 flex-col bg-background">
@@ -85,9 +90,6 @@ function ConversationList({
               个待处理会话
             </p>
           </div>
-          <Button variant="outline" size="icon-sm" aria-label="更多会话操作">
-            <MoreHorizontal className="size-4" />
-          </Button>
         </div>
         <div className="relative">
           <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
@@ -100,7 +102,11 @@ function ConversationList({
         </div>
       </div>
 
-      <Tabs defaultValue="mine" className="min-h-0 flex-1 gap-0">
+      <Tabs
+        value={scope}
+        onValueChange={setScope}
+        className="min-h-0 flex-1 gap-0"
+      >
         <div className="border-y px-3 py-2">
           <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="mine">我的</TabsTrigger>
@@ -110,6 +116,11 @@ function ConversationList({
         </div>
         <ScrollArea className="h-[calc(100%-49px)]">
           <div className="divide-y">
+            {filtered.length === 0 ? (
+              <p className="px-4 py-10 text-center text-xs text-muted-foreground">
+                当前范围没有会话
+              </p>
+            ) : null}
             {filtered.map((conversation) => {
               const ChannelIcon = channelMeta[conversation.channel].icon;
               const selected = conversation.id === selectedId;
@@ -199,7 +210,7 @@ function CustomerPanel({ conversation }: { conversation: Conversation }) {
               {conversation.customer.name}
             </p>
             <p className="mt-1 text-xs text-muted-foreground">
-              客户 ID · {conversation.id.slice(5)}
+              客户 ID · {conversation.customer.id}
             </p>
             <div className="mt-3 flex flex-wrap justify-center gap-1.5">
               {conversation.tags.map((tag) => (
@@ -249,14 +260,9 @@ function CustomerPanel({ conversation }: { conversation: Conversation }) {
             <>
               <Separator className="my-5" />
               <section>
-                <div className="flex items-center justify-between">
-                  <h2 className="text-xs font-semibold text-muted-foreground">
-                    最近订单
-                  </h2>
-                  <Button variant="ghost" size="xs">
-                    查看全部
-                  </Button>
-                </div>
+                <h2 className="text-xs font-semibold text-muted-foreground">
+                  最近订单
+                </h2>
                 <div className="mt-3 border bg-background p-3">
                   <div className="flex items-center justify-between gap-2">
                     <span className="font-mono text-xs">
@@ -310,8 +316,10 @@ async function parseConversationResponse(response: Response) {
 
 export function ConversationWorkspace({
   initialConversations,
+  agentName,
 }: {
   initialConversations: Conversation[];
+  agentName: string;
 }) {
   const [conversations, setConversations] = useState(initialConversations);
   const [selectedId, setSelectedId] = useState(initialConversations[0].id);
@@ -362,41 +370,15 @@ export function ConversationWorkspace({
     }
   }
 
-  async function toggleAiManaged() {
+  async function updateStatus(status: Conversation["status"]) {
     const previous = selected;
-    const nextAiManaged = !selected.aiManaged;
-    const optimistic = {
-      ...selected,
-      aiManaged: nextAiManaged,
-      assignee: nextAiManaged ? "Luma AI" : "周宁",
-    };
-    replaceConversation(optimistic);
+    replaceConversation({ ...selected, status, unread: 0 });
     setError(null);
-    setPendingAction("handoff");
-
-    try {
-      const updated = await patchConversation(selected.id, {
-        aiManaged: nextAiManaged,
-        assignee: optimistic.assignee,
-      });
-      replaceConversation(updated);
-    } catch (requestError) {
-      replaceConversation(previous);
-      setError((requestError as Error).message);
-    } finally {
-      setPendingAction(null);
-    }
-  }
-
-  async function resolveConversation() {
-    const previous = selected;
-    replaceConversation({ ...selected, status: "resolved", unread: 0 });
-    setError(null);
-    setPendingAction("resolve");
+    setPendingAction("status");
 
     try {
       replaceConversation(
-        await patchConversation(selected.id, { status: "resolved", unread: 0 }),
+        await patchConversation(selected.id, { status, unread: 0 }),
       );
     } catch (requestError) {
       replaceConversation(previous);
@@ -430,12 +412,15 @@ export function ConversationWorkspace({
               ...conversation,
               lastMessage: content,
               updatedAt: "刚刚",
+              assignee: agentName,
+              aiManaged: false,
+              status: "open",
               messages: [
                 ...conversation.messages,
                 {
                   id: temporaryId,
                   role: "agent" as const,
-                  sender: "周宁",
+                  sender: agentName,
                   content,
                   time: new Intl.DateTimeFormat("zh-CN", {
                     hour: "2-digit",
@@ -456,7 +441,7 @@ export function ConversationWorkspace({
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ role: "agent", sender: "周宁", content }),
+          body: JSON.stringify({ content }),
         },
       );
       replaceConversation(await parseConversationResponse(response));
@@ -469,19 +454,13 @@ export function ConversationWorkspace({
     }
   }
 
-  function draftAiReply() {
-    const reply = selected.lastMessage.includes("物流")
-      ? "你好，抱歉让你久等了。我已经核对到物流信息超过 48 小时没有更新，现已为你创建承运商核查单。我们会在 24 小时内同步最新结果。"
-      : "你好，我已经收到你的问题。为了避免提供不准确的信息，我会先核对相关记录，再尽快给你明确答复。";
-    setDraft(reply);
-  }
-
   return (
     <div className="flex h-full min-h-0">
       <aside className="hidden h-full w-80 shrink-0 border-r lg:block">
         <ConversationList
           conversations={conversations}
           selectedId={selected.id}
+          agentName={agentName}
           onSelect={selectConversation}
         />
       </aside>
@@ -502,6 +481,7 @@ export function ConversationWorkspace({
               <ConversationList
                 conversations={conversations}
                 selectedId={selected.id}
+                agentName={agentName}
                 onSelect={(id) => {
                   selectConversation(id);
                   setMobileListOpen(false);
@@ -523,32 +503,22 @@ export function ConversationWorkspace({
                 <span className="size-1.5 rounded-full bg-destructive" />
               )}
             </div>
-            <p className="mt-0.5 flex items-center gap-1 text-xs text-muted-foreground">
-              <span className="size-1.5 rounded-full bg-emerald-500" /> 在线 ·{" "}
-              {channelMeta[selected.channel].label}
+            <p className="mt-0.5 text-xs text-muted-foreground">
+              {channelMeta[selected.channel].label} ·{" "}
+              {selected.status === "open"
+                ? "处理中"
+                : selected.status === "pending"
+                  ? "稍后处理"
+                  : "已解决"}
             </p>
           </div>
           <div className="ml-auto flex items-center gap-1.5">
             <Button
-              variant={selected.aiManaged ? "outline" : "default"}
-              size="sm"
-              onClick={toggleAiManaged}
-              disabled={pendingAction === "handoff"}
-              className="hidden sm:flex"
-            >
-              {selected.aiManaged ? (
-                <UserRoundCheck className="size-4" />
-              ) : (
-                <Bot className="size-4" />
-              )}
-              {selected.aiManaged ? "人工接管" : "交给 AI"}
-            </Button>
-            <Button
               variant="outline"
               size="icon-sm"
-              onClick={resolveConversation}
+              onClick={() => updateStatus("resolved")}
               disabled={
-                selected.status === "resolved" || pendingAction === "resolve"
+                selected.status === "resolved" || pendingAction === "status"
               }
               aria-label="标记为已解决"
             >
@@ -565,13 +535,15 @@ export function ConversationWorkspace({
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <DropdownMenuItem>
-                  <Clock3 />
-                  稍后处理
-                </DropdownMenuItem>
-                <DropdownMenuItem>
-                  <Archive />
-                  归档会话
+                <DropdownMenuItem
+                  onClick={() =>
+                    updateStatus(
+                      selected.status === "open" ? "pending" : "open",
+                    )
+                  }
+                >
+                  {selected.status === "open" ? <Clock3 /> : <RotateCcw />}
+                  {selected.status === "open" ? "稍后处理" : "重新打开"}
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -580,11 +552,6 @@ export function ConversationWorkspace({
 
         <ScrollArea className="min-h-0 flex-1">
           <div className="mx-auto flex w-full max-w-3xl flex-col gap-5 px-4 py-6 sm:px-8">
-            <div className="flex items-center gap-3 text-[11px] text-muted-foreground">
-              <Separator className="flex-1" />
-              今天
-              <Separator className="flex-1" />
-            </div>
             {selected.messages.map((message) => {
               if (message.role === "system") {
                 return (
@@ -648,27 +615,6 @@ export function ConversationWorkspace({
             </p>
           )}
           <div className="mx-auto max-w-3xl border bg-background shadow-sm focus-within:ring-2 focus-within:ring-ring/30">
-            <div className="flex items-center gap-1 border-b px-2 py-1.5">
-              <Button variant="ghost" size="xs">
-                <MessageCircleMore />
-                回复
-              </Button>
-              <Button
-                variant="ghost"
-                size="xs"
-                className="text-muted-foreground"
-              >
-                内部备注
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon-xs"
-                className="ml-auto"
-                aria-label="选择回复身份"
-              >
-                <ChevronDown className="size-3.5" />
-              </Button>
-            </div>
             <Textarea
               value={draft}
               onChange={(event) => setDraft(event.target.value)}
@@ -682,21 +628,6 @@ export function ConversationWorkspace({
               className="min-h-20 resize-none border-0 shadow-none focus-visible:ring-0"
             />
             <div className="flex items-center gap-1 px-2 pb-2">
-              <Button variant="ghost" size="icon-sm" aria-label="添加附件">
-                <Paperclip className="size-4" />
-              </Button>
-              <Button variant="ghost" size="icon-sm" aria-label="插入快捷回复">
-                <FileText className="size-4" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="text-primary"
-                onClick={draftAiReply}
-              >
-                <Sparkles className="size-4" />
-                AI 润色
-              </Button>
               <Button
                 size="icon-sm"
                 className="ml-auto"

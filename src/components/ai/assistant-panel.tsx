@@ -32,7 +32,13 @@ const examples = [
   "企业客户要续费报价单，该怎么回复",
 ];
 
-export function AssistantPanel() {
+export function AssistantPanel({
+  modelConfigured,
+  modelLabel,
+}: {
+  modelConfigured: boolean;
+  modelLabel: string;
+}) {
   const [input, setInput] = useState("");
   const { messages, sendMessage, status, error, regenerate } = useChat({
     transport,
@@ -58,9 +64,14 @@ export function AssistantPanel() {
             基于已发布知识生成可审核回复
           </p>
         </div>
-        <Badge variant="outline" className="ml-auto gap-1 font-normal">
-          <span className="size-1.5 rounded-full bg-emerald-500" />
-          演示模式可用
+        <Badge
+          variant={modelConfigured ? "outline" : "secondary"}
+          className="ml-auto gap-1 font-normal"
+        >
+          <span
+            className={`size-1.5 rounded-full ${modelConfigured ? "bg-emerald-500" : "bg-muted-foreground/40"}`}
+          />
+          {modelConfigured ? modelLabel : "模型未配置"}
         </Badge>
       </header>
 

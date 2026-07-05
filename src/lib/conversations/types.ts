@@ -15,6 +15,7 @@ export type Message = {
 export type Conversation = {
   id: string;
   customer: {
+    id: string;
     name: string;
     initials: string;
     phone: string;

@@ -3,7 +3,6 @@ import type { Metadata } from "next";
 import { SystemSettings } from "@/components/operations/system-settings";
 import { requirePageAuth } from "@/lib/auth/context";
 import { can } from "@/lib/auth/permissions";
-import { getDataMode } from "@/lib/conversations/repository";
 import {
   getPublicAiProviderSettings,
   getWorkspaceSettings,
@@ -25,7 +24,6 @@ export default async function SettingsPage() {
   return (
     <SystemSettings
       initialSettings={{ workspace, ai }}
-      dataMode={getDataMode()}
       canManage={can(user.role, "settings.manage")}
     />
   );

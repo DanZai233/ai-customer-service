@@ -31,5 +31,10 @@ export default async function InboxPage() {
     );
   }
 
-  return <ConversationWorkspace initialConversations={conversations} />;
+  return (
+    <ConversationWorkspace
+      initialConversations={conversations}
+      agentName={user.name}
+    />
+  );
 }

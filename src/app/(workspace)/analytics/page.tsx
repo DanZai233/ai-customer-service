@@ -1,11 +1,12 @@
 import type { Metadata } from "next";
 import {
   ArrowDownRight,
+  ArrowRight,
   ArrowUpRight,
   Bot,
   Clock3,
+  ListTodo,
   MessagesSquare,
-  Smile,
 } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
@@ -18,72 +19,31 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { cn } from "@/lib/utils";
 import { requirePageAuth } from "@/lib/auth/context";
+import { getAnalyticsDashboard } from "@/lib/analytics/repository";
 
 export const metadata: Metadata = {
   title: "数据分析",
 };
 
-const metrics = [
-  {
-    label: "今日会话",
-    value: "286",
-    change: "+12.4%",
-    trend: "up",
-    icon: MessagesSquare,
-  },
-  {
-    label: "AI 独立解决",
-    value: "71.8%",
-    change: "+4.1%",
-    trend: "up",
-    icon: Bot,
-  },
-  {
-    label: "首次响应",
-    value: "18 秒",
-    change: "-6 秒",
-    trend: "down",
-    icon: Clock3,
-  },
-  {
-    label: "客户满意度",
-    value: "94.6%",
-    change: "+1.2%",
-    trend: "up",
-    icon: Smile,
-  },
-] as const;
-
-const volume = [48, 62, 54, 73, 68, 82, 76, 91, 88, 70, 64, 52];
-const queues = [
-  {
-    name: "订单与物流",
-    volume: 108,
-    aiRate: 82,
-    response: "14 秒",
-    csat: "96.2%",
-  },
-  {
-    name: "售后退款",
-    volume: 74,
-    aiRate: 48,
-    response: "31 秒",
-    csat: "91.8%",
-  },
-  { name: "产品咨询", volume: 63, aiRate: 89, response: "9 秒", csat: "97.1%" },
-  {
-    name: "企业客户",
-    volume: 41,
-    aiRate: 37,
-    response: "42 秒",
-    csat: "93.4%",
-  },
-];
+const metricIcons = {
+  conversations: MessagesSquare,
+  aiRate: Bot,
+  firstResponse: Clock3,
+  backlog: ListTodo,
+};
 
 export default async function AnalyticsPage() {
-  await requirePageAuth("analytics.read");
+  const { user } = await requirePageAuth("analytics.read");
+  const dashboard = await getAnalyticsDashboard(user.organizationId);
+  const maxVolume = Math.max(1, ...dashboard.volume.map((item) => item.value));
+  const generatedAt = new Intl.DateTimeFormat("zh-CN", {
+    timeZone: dashboard.timezone,
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: false,
+  }).format(new Date(dashboard.generatedAt));
   return (
     <div className="h-full overflow-auto bg-muted/15 p-4 sm:p-6">
       <div className="mx-auto max-w-7xl">
@@ -91,37 +51,41 @@ export default async function AnalyticsPage() {
           <div>
             <h1 className="text-xl font-semibold">数据分析</h1>
             <p className="mt-1 text-sm text-muted-foreground">
-              今天 00:00 至当前，较上周同期
+              今天 00:00 至当前，比较昨日同期
             </p>
           </div>
           <Badge variant="outline" className="font-normal">
-            实时更新
+            PostgreSQL · {generatedAt}
           </Badge>
         </header>
 
         <section className="grid gap-px overflow-hidden border bg-border sm:grid-cols-2 xl:grid-cols-4">
-          {metrics.map(({ label, value, change, trend, icon: Icon }) => (
-            <div key={label} className="bg-background p-4">
-              <div className="flex items-center justify-between">
-                <p className="text-xs text-muted-foreground">{label}</p>
-                <Icon className="size-4 text-muted-foreground" />
+          {dashboard.metrics.map((metric) => {
+            const Icon = metricIcons[metric.id];
+            const TrendIcon =
+              metric.trend === "positive"
+                ? ArrowUpRight
+                : metric.trend === "negative"
+                  ? ArrowDownRight
+                  : ArrowRight;
+            return (
+              <div key={metric.id} className="bg-background p-4">
+                <div className="flex items-center justify-between">
+                  <p className="text-xs text-muted-foreground">
+                    {metric.label}
+                  </p>
+                  <Icon className="size-4 text-muted-foreground" />
+                </div>
+                <p className="mt-3 font-mono text-2xl font-semibold">
+                  {metric.value}
+                </p>
+                <p className="mt-2 flex items-center gap-1 text-xs text-muted-foreground">
+                  <TrendIcon className="size-3.5" />
+                  {metric.detail}
+                </p>
               </div>
-              <p className="mt-3 font-mono text-2xl font-semibold">{value}</p>
-              <p
-                className={cn(
-                  "mt-2 flex items-center gap-1 text-xs",
-                  trend === "up" ? "text-emerald-600" : "text-blue-600",
-                )}
-              >
-                {trend === "up" ? (
-                  <ArrowUpRight className="size-3.5" />
-                ) : (
-                  <ArrowDownRight className="size-3.5" />
-                )}
-                {change}
-              </p>
-            </div>
-          ))}
+            );
+          })}
         </section>
 
         <div className="mt-4 grid gap-4 xl:grid-cols-[minmax(0,1fr)_320px]">
@@ -138,57 +102,59 @@ export default async function AnalyticsPage() {
               </Badge>
             </div>
             <div className="mt-8 flex h-56 items-end gap-2 border-b px-2 sm:gap-3">
-              {volume.map((value, index) => (
+              {dashboard.volume.map((item) => (
                 <div
-                  key={`${index}-${value}`}
+                  key={item.label}
                   className="group flex h-full min-w-0 flex-1 items-end"
                 >
                   <div
                     className="relative w-full bg-primary/75 transition-colors group-hover:bg-primary"
-                    style={{ height: `${value}%` }}
+                    style={{
+                      height:
+                        item.value === 0
+                          ? "0%"
+                          : `${Math.max(6, (item.value / maxVolume) * 100)}%`,
+                    }}
                   >
                     <span className="absolute -top-6 left-1/2 hidden -translate-x-1/2 font-mono text-[10px] group-hover:block">
-                      {value}
+                      {item.value}
                     </span>
                   </div>
                 </div>
               ))}
             </div>
             <div className="mt-2 flex justify-between font-mono text-[10px] text-muted-foreground">
-              <span>00:00</span>
-              <span>06:00</span>
-              <span>12:00</span>
-              <span>18:00</span>
-              <span>22:00</span>
+              {dashboard.volume
+                .filter((_, index) => index % 3 === 0 || index === 11)
+                .map((item) => (
+                  <span key={item.label}>{item.label}</span>
+                ))}
             </div>
           </section>
 
           <section className="border bg-background p-4 sm:p-5">
-            <h2 className="text-sm font-semibold">AI 处理漏斗</h2>
+            <h2 className="text-sm font-semibold">AI 运行信号</h2>
             <p className="mt-1 text-xs text-muted-foreground">
-              从接待到独立解决
+              今日真实事件计数
             </p>
             <div className="mt-6 space-y-5">
-              {[
-                ["AI 接待", 248, 100],
-                ["知识命中", 221, 89],
-                ["生成有效回复", 196, 79],
-                ["AI 独立解决", 178, 72],
-              ].map(([label, count, percent]) => (
-                <div key={String(label)}>
+              {dashboard.aiSignals.map((signal) => (
+                <div key={signal.label}>
                   <div className="flex items-center justify-between text-xs">
-                    <span>{label}</span>
+                    <span>{signal.label}</span>
                     <span className="font-mono text-muted-foreground">
-                      {count}
+                      {signal.count}
                     </span>
                   </div>
-                  <Progress value={Number(percent)} className="mt-2 h-1.5" />
+                  <Progress value={signal.percent} className="mt-2 h-1.5" />
                 </div>
               ))}
             </div>
             <div className="mt-6 border-t pt-4">
-              <p className="text-xs text-muted-foreground">主要转人工原因</p>
-              <p className="mt-2 text-sm">退款审批、物流异常、企业报价</p>
+              <p className="text-xs text-muted-foreground">数据口径</p>
+              <p className="mt-2 text-xs leading-5">
+                托管标记、知识检索记录、assistant 消息和已解决状态
+              </p>
             </div>
           </section>
         </div>
@@ -203,13 +169,13 @@ export default async function AnalyticsPage() {
                 <TableRow>
                   <TableHead>队列</TableHead>
                   <TableHead className="text-right">会话量</TableHead>
-                  <TableHead className="text-right">AI 解决率</TableHead>
+                  <TableHead className="text-right">AI 托管率</TableHead>
                   <TableHead className="text-right">首次响应</TableHead>
-                  <TableHead className="text-right">满意度</TableHead>
+                  <TableHead className="text-right">解决率</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {queues.map((queue) => (
+                {dashboard.queues.map((queue) => (
                   <TableRow key={queue.name}>
                     <TableCell className="font-medium">{queue.name}</TableCell>
                     <TableCell className="text-right font-mono">
@@ -222,10 +188,20 @@ export default async function AnalyticsPage() {
                       {queue.response}
                     </TableCell>
                     <TableCell className="text-right font-mono">
-                      {queue.csat}
+                      {queue.resolutionRate}%
                     </TableCell>
                   </TableRow>
                 ))}
+                {dashboard.queues.length === 0 && (
+                  <TableRow>
+                    <TableCell
+                      colSpan={5}
+                      className="h-24 text-center text-muted-foreground"
+                    >
+                      今日还没有会话数据
+                    </TableCell>
+                  </TableRow>
+                )}
               </TableBody>
             </Table>
           </div>

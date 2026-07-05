@@ -12,7 +12,7 @@ import {
   organizations,
   organizationSettings,
 } from "./schema";
-import { conversations as demoConversations } from "../lib/demo-data";
+import { conversations as seedConversations } from "../lib/seed-data";
 import { getAuth } from "../lib/auth/server";
 import { seedKnowledgeDocuments } from "../lib/knowledge/seed-data";
 import { getOptionalRuntimeSecret } from "../lib/runtime-secrets";
@@ -58,7 +58,7 @@ async function seed() {
       )
       .onConflictDoNothing();
 
-    for (const [index, conversation] of demoConversations.entries()) {
+    for (const [index, conversation] of seedConversations.entries()) {
       const customerId = `customer-${conversation.id.slice(5)}`;
 
       await transaction
@@ -201,7 +201,7 @@ async function seed() {
     }
   }
 
-  console.log(`Seeded ${demoConversations.length} conversations.`);
+  console.log(`Seeded ${seedConversations.length} baseline conversations.`);
 }
 
 seed()
