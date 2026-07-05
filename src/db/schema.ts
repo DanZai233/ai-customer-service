@@ -10,6 +10,8 @@ import {
   uniqueIndex,
 } from "drizzle-orm/pg-core";
 
+import { user } from "@/db/auth-schema";
+
 export const channelEnum = pgEnum("channel", ["web", "wechat", "email"]);
 export const conversationStatusEnum = pgEnum("conversation_status", [
   "open",
@@ -187,6 +189,25 @@ export const organizationSettings = pgTable("organization_settings", {
   createdAt: timestamp({ withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp({ withTimezone: true }).defaultNow().notNull(),
 });
+
+export const teamMemberSettings = pgTable(
+  "team_member_settings",
+  {
+    userId: text()
+      .primaryKey()
+      .references(() => user.id, { onDelete: "cascade" }),
+    organizationId: text()
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    capacity: integer().default(8).notNull(),
+    updatedBy: text(),
+    createdAt: timestamp({ withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp({ withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    index("team_member_settings_organization_idx").on(table.organizationId),
+  ],
+);
 
 export const aiProviderSettings = pgTable("ai_provider_settings", {
   organizationId: text()

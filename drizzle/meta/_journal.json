@@ -43,6 +43,13 @@
       "when": 1783108083486,
       "tag": "0005_aspiring_annihilus",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1783234681115,
+      "tag": "0006_smiling_franklin_storm",
+      "breakpoints": true
     }
   ]
 }
