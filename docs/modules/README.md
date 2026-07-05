@@ -9,7 +9,7 @@
 | AI 助手    | [03-ai-assistant.md](03-ai-assistant.md)                   | 已实现，待配置模型凭证 |
 | 知识库     | [04-knowledge-base.md](04-knowledge-base.md)               | PostgreSQL/检索已实现  |
 | 数据分析   | [05-analytics.md](05-analytics.md)                         | PostgreSQL 实时聚合    |
-| 渠道管理   | [06-channels.md](06-channels.md)                           | 配置界面，待真实回调   |
+| 渠道管理   | [06-channels.md](06-channels.md)                           | API 与真实渠道统计     |
 | 团队管理   | [07-team.md](07-team.md)                                   | 真实成员、状态与负载   |
 | 系统设置   | [08-settings.md](08-settings.md)                           | 运行状态已接入         |
 | 数据后端   | [09-backend-data.md](09-backend-data.md)                   | PostgreSQL 已运行      |
