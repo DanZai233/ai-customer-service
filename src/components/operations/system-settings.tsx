@@ -600,7 +600,7 @@ export function SystemSettings({
                   <div>
                     <p className="text-sm font-medium">隐藏敏感信息</p>
                     <p className="mt-1 text-xs text-muted-foreground">
-                      在会话和日志中遮盖手机号、邮箱与证件号码
+                      在会话工作台中遮盖手机号与邮箱
                     </p>
                   </div>
                   <Switch
@@ -614,12 +614,12 @@ export function SystemSettings({
                 </div>
                 <div className="mt-5 flex items-center justify-between gap-4 border-t pt-5">
                   <div>
-                    <p className="text-sm font-medium">高风险操作审批</p>
+                    <p className="text-sm font-medium">AI 高风险提示</p>
                     <p className="mt-1 text-xs text-muted-foreground">
-                      退款、合同和账户操作必须由人工确认
+                      回复涉及退款、合同和账户安全时提示人工确认
                     </p>
                   </div>
-                  <Badge variant="outline">强制启用</Badge>
+                  <Badge variant="outline">提示规则已启用</Badge>
                 </div>
                 <div className="mt-5">
                   <StatusNotice notice={workspaceNotice} />

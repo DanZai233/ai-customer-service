@@ -107,12 +107,12 @@ export default async function AiPage() {
                   variant={ai.configured ? "outline" : "secondary"}
                   className="font-normal"
                 >
-                  {ai.configured ? "已连接" : "未配置"}
+                  {ai.configured ? "已配置" : "未配置"}
                 </Badge>
               </div>
               <div className="mt-4 flex items-center gap-2 border-t pt-4 text-xs text-muted-foreground">
                 <Bot className="size-3.5" />
-                支持 DeepSeek、Qwen、OpenAI 等服务
+                使用火山引擎或 OpenAI 兼容协议
               </div>
             </section>
           </aside>

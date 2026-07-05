@@ -30,17 +30,18 @@ npm run build
 
 ## 已实现模块
 
-- 多渠道会话队列、聊天工作台和客户资料
-- AI/人工接管、回复发送和 AI 草稿
+- PostgreSQL 多渠道会话队列、聊天工作台和客户资料
+- 绑定真实登录坐席的人工回复、状态流转与负责人筛选
 - 知识管理、检索测试和草稿发布边界
 - AI SDK 6 流式回复接口与 OpenAI 兼容模型适配
 - 火山引擎方舟（豆包）与 OpenAI 兼容模型后台配置
-- 数据分析、渠道配置、团队负载和系统设置
+- PostgreSQL 实时数据分析、真实渠道能力状态、团队负载和系统设置
 - Docker、健康检查与 GitHub Actions CI
 - PostgreSQL 持久化、Drizzle SQL 迁移与会话读写 API
 - Better Auth 自托管登录、数据库会话与五级客服 RBAC
 - PostgreSQL 运行时配置中心与加密的模型密钥存储
 - PostgreSQL 知识服务、发布工作流与组织级检索事件
+- 可识别的基础数据种子；不使用运行时内存模拟或模型伪回复
 
 详细边界和生产化替换点参见 [系统架构](docs/architecture.md)、[外部服务接入](docs/integrations.md) 与 [大模型配置](docs/model-configuration.md)。
 

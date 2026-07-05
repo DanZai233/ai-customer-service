@@ -6,7 +6,7 @@
 
 未配置时 `/api/ai/suggest` 返回 `503`，避免在生产环境把模拟内容误认为模型输出。
 
-火山引擎方舟、DeepSeek、通义千问和 Ollama 的完整样例参见 [大模型配置](model-configuration.md)。
+火山引擎方舟与 OpenAI 兼容服务的配置说明参见 [大模型配置](model-configuration.md)。
 
 ## PostgreSQL
 
@@ -19,9 +19,9 @@ npm run db:seed
 
 `DATABASE_URL` 是必需配置。Docker Compose 会自动启动数据库、执行迁移和基础种子脚本；数据库不可用时服务不会回退到内存数据。
 
-## Chatwoot
+## 尚未上线的原生连接器
 
-建议使用一个独立渠道适配服务完成以下数据流：
+微信、邮件和 Chatwoot 目前没有运行中的原生连接器，也没有环境变量占位配置。后续连接器需要完成以下数据流后才能在渠道页标记为可用：
 
 1. 订阅 Chatwoot 的 `message_created` 和 `conversation_status_changed` Webhook。
 2. 用 `conversation_id` 作为幂等键，把客户消息写入会话服务。

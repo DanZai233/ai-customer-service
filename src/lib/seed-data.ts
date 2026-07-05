@@ -27,8 +27,8 @@ export const conversations: Conversation[] = [
     unread: 2,
     lastMessage: "物流三天没更新了，能帮我看一下吗？",
     updatedAt: "2 分钟前",
-    assignee: "周宁",
-    tags: ["物流", "高价值客户"],
+    assignee: "未分配",
+    tags: ["基础数据", "物流", "高价值客户"],
     aiManaged: false,
     order: {
       id: "SO-20260703-1842",
@@ -83,9 +83,9 @@ export const conversations: Conversation[] = [
     unread: 1,
     lastMessage: "怎么修改发票抬头？",
     updatedAt: "8 分钟前",
-    assignee: "Luma AI",
-    tags: ["发票"],
-    aiManaged: true,
+    assignee: "未分配",
+    tags: ["基础数据", "发票"],
+    aiManaged: false,
     messages: [
       {
         id: "m-5",
@@ -113,8 +113,8 @@ export const conversations: Conversation[] = [
     unread: 0,
     lastMessage: "请把续费报价单发到我的邮箱，谢谢。",
     updatedAt: "26 分钟前",
-    assignee: "周宁",
-    tags: ["续费", "企业客户"],
+    assignee: "未分配",
+    tags: ["基础数据", "续费", "企业客户"],
     aiManaged: false,
     messages: [
       {
@@ -126,7 +126,7 @@ export const conversations: Conversation[] = [
       {
         id: "m-7",
         role: "agent",
-        sender: "周宁",
+        sender: "初始化数据",
         content: "收到，我确认席位数量后会在今天下班前发给你。",
         time: "14:02",
       },
@@ -150,9 +150,9 @@ export const conversations: Conversation[] = [
     unread: 0,
     lastMessage: "已经解决了，感谢！",
     updatedAt: "1 小时前",
-    assignee: "Luma AI",
-    tags: ["产品使用"],
-    aiManaged: true,
+    assignee: "未分配",
+    tags: ["基础数据", "产品使用"],
+    aiManaged: false,
     messages: [
       {
         id: "m-8",
@@ -181,7 +181,7 @@ export const conversations: Conversation[] = [
     lastMessage: "周末有人处理退款吗？",
     updatedAt: "2 小时前",
     assignee: "未分配",
-    tags: ["退款"],
+    tags: ["基础数据", "退款"],
     aiManaged: false,
     messages: [
       {

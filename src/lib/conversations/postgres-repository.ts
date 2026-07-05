@@ -1,11 +1,22 @@
 import { and, asc, desc, eq, inArray } from "drizzle-orm";
 
 import { getDatabase } from "@/db/client";
-import { conversations, customers, messages, orders } from "@/db/schema";
+import {
+  conversations,
+  customers,
+  messages,
+  orders,
+  organizationSettings,
+} from "@/db/schema";
 import {
   ConversationNotFoundError,
   type ConversationRepository,
 } from "@/lib/conversations/contract";
+import {
+  isResolutionConfirmation,
+  maskEmail,
+  maskPhone,
+} from "@/lib/conversations/policies";
 import type { Conversation, NewMessage } from "@/lib/conversations/types";
 
 function relativeTime(date: Date) {
@@ -47,12 +58,19 @@ function orderDate(date: Date) {
 export function createPostgresConversationRepository(): ConversationRepository {
   async function list(organizationId: string) {
     const db = getDatabase();
-    const conversationRows = await db
-      .select({ conversation: conversations, customer: customers })
-      .from(conversations)
-      .innerJoin(customers, eq(conversations.customerId, customers.id))
-      .where(eq(conversations.organizationId, organizationId))
-      .orderBy(desc(conversations.updatedAt));
+    const [conversationRows, settings] = await Promise.all([
+      db
+        .select({ conversation: conversations, customer: customers })
+        .from(conversations)
+        .innerJoin(customers, eq(conversations.customerId, customers.id))
+        .where(eq(conversations.organizationId, organizationId))
+        .orderBy(desc(conversations.updatedAt)),
+      db.query.organizationSettings.findFirst({
+        where: eq(organizationSettings.organizationId, organizationId),
+        columns: { maskSensitive: true },
+      }),
+    ]);
+    const shouldMaskSensitive = settings?.maskSensitive ?? true;
 
     if (conversationRows.length === 0) return [];
 
@@ -100,8 +118,12 @@ export function createPostgresConversationRepository(): ConversationRepository {
           id: customer.id,
           name: customer.name,
           initials: customer.initials,
-          phone: customer.phone,
-          email: customer.email,
+          phone: shouldMaskSensitive
+            ? maskPhone(customer.phone)
+            : customer.phone,
+          email: shouldMaskSensitive
+            ? maskEmail(customer.email)
+            : customer.email,
           city: customer.city,
           plan: customer.plan,
           since: customer.customerSince,
@@ -189,6 +211,17 @@ export function createPostgresConversationRepository(): ConversationRepository {
           throw new ConversationNotFoundError(conversationId);
         }
 
+        const settings = await transaction.query.organizationSettings.findFirst(
+          {
+            where: eq(organizationSettings.organizationId, organizationId),
+            columns: { autoResolve: true },
+          },
+        );
+        const shouldAutoResolve =
+          message.role === "customer" &&
+          (settings?.autoResolve ?? true) &&
+          isResolutionConfirmation(message.content);
+
         await transaction.insert(messages).values({
           id: `msg-${crypto.randomUUID()}`,
           organizationId,
@@ -211,6 +244,7 @@ export function createPostgresConversationRepository(): ConversationRepository {
                   status: "open" as const,
                 }
               : {}),
+            ...(shouldAutoResolve ? { status: "resolved" as const } : {}),
           })
           .where(eq(conversations.id, conversationId));
       });
