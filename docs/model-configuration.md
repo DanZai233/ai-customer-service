@@ -38,6 +38,6 @@
 
 根密钥丢失后已有 API Key 无法解密。生产环境应备份密钥并限制读取权限。
 
-## 演示模式
+## 未配置状态
 
-缺少 Base URL、Model ID 或 API Key，或者模型服务被停用时，系统进入演示模式，不会请求外部模型。`GET /api/health` 会返回当前 AI 模式和模型 ID。
+缺少 Base URL、Model ID 或 API Key，或者模型服务被停用时，系统不会请求外部模型，AI 回复接口返回 `503`。`GET /api/health` 会返回 `unconfigured` 和当前模型 ID。

@@ -25,7 +25,7 @@ flowchart LR
 - `src/app/api/ai/suggest`：AI SDK 6 流式回复接口。
 - `src/app/api/conversations`：会话、状态和消息写入 API。
 - `src/db/schema.ts`：PostgreSQL 多租户数据模型。
-- `src/lib/conversations`：PostgreSQL/演示双仓储实现与输入校验。
+- `src/lib/conversations`：PostgreSQL 会话仓储与输入校验。
 - `src/lib/auth`：自托管认证、租户上下文与角色权限。
 - `src/app/api/auth`：Better Auth 登录和会话接口。
 - `src/lib/ai/provider.ts`：OpenAI 兼容模型适配器。

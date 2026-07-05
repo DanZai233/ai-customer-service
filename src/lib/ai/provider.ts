@@ -16,7 +16,7 @@ export async function getAiProviderStatus(organizationId: string) {
   return {
     kind: config.kind,
     configured: config.configured,
-    mode: config.configured ? ("provider" as const) : ("demo" as const),
+    mode: config.configured ? ("provider" as const) : ("unconfigured" as const),
     provider: config.provider,
     baseURL: config.baseURL,
     model: config.model,

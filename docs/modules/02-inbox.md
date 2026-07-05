@@ -26,7 +26,7 @@
 
 ## 数据
 
-使用 `customers`、`conversations`、`messages` 和 `orders` 表，通过 `organizationId` 隔离租户。未配置数据库时仅回退到内存演示仓储。
+使用 `customers`、`conversations`、`messages` 和 `orders` 表，通过 `organizationId` 隔离租户。PostgreSQL 是唯一运行时数据源，数据库不可用时接口明确失败。
 
 ## 验收与边界
 

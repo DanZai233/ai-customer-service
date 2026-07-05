@@ -101,14 +101,12 @@ function StatusNotice({ notice }: { notice: Notice }) {
 
 export function SystemSettings({
   initialSettings,
-  dataMode,
   canManage,
 }: {
   initialSettings: {
     workspace: WorkspaceSettings;
     ai: PublicAiProviderSettings;
   };
-  dataMode: "postgres" | "demo";
   canManage: boolean;
 }) {
   const [workspace, setWorkspace] = useState(initialSettings.workspace);
@@ -264,7 +262,7 @@ export function SystemSettings({
             </div>
             <div className="flex items-center gap-2">
               <Badge variant="outline" className="font-normal">
-                {dataMode === "postgres" ? "PostgreSQL" : "演示数据"}
+                PostgreSQL
               </Badge>
               {!canManage && <Badge variant="secondary">只读</Badge>}
             </div>
@@ -393,7 +391,7 @@ export function SystemSettings({
                     variant={ai.configured ? "default" : "secondary"}
                     className="font-normal"
                   >
-                    {ai.configured ? "已启用" : "演示模式"}
+                    {ai.configured ? "已启用" : "未配置"}
                   </Badge>
                   <div className="ml-auto flex items-center gap-2">
                     <Button
@@ -544,7 +542,7 @@ export function SystemSettings({
                   <div>
                     <p className="text-sm font-medium">启用模型服务</p>
                     <p className="mt-1 text-xs text-muted-foreground">
-                      停用后 AI 回复切换为演示模式
+                      停用后 AI 回复接口将明确返回不可用
                     </p>
                   </div>
                   <Switch

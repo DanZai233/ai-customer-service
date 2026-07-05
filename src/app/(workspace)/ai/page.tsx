@@ -6,6 +6,8 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Separator } from "@/components/ui/separator";
 import { requirePageAuth } from "@/lib/auth/context";
+import { getAiProviderStatus } from "@/lib/ai/provider";
+import { getKnowledgeStats } from "@/lib/knowledge/repository";
 
 export const metadata: Metadata = {
   title: "AI 助手",
@@ -18,7 +20,15 @@ const safeguards = [
 ];
 
 export default async function AiPage() {
-  await requirePageAuth("ai.use");
+  const { user } = await requirePageAuth("ai.use");
+  const [ai, knowledge] = await Promise.all([
+    getAiProviderStatus(user.organizationId),
+    getKnowledgeStats(user.organizationId),
+  ]);
+  const knowledgeReadiness =
+    knowledge.total === 0
+      ? 0
+      : Math.round((knowledge.published / knowledge.total) * 100);
   return (
     <div className="h-full overflow-auto bg-muted/15 p-4 sm:p-6">
       <div className="mx-auto max-w-7xl">
@@ -30,7 +40,10 @@ export default async function AiPage() {
         </div>
 
         <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_300px]">
-          <AssistantPanel />
+          <AssistantPanel
+            modelConfigured={ai.configured}
+            modelLabel={ai.model ?? ai.provider}
+          />
 
           <aside className="space-y-4">
             <section className="border bg-background p-4">
@@ -55,9 +68,9 @@ export default async function AiPage() {
               <Separator className="my-4" />
               <div className="flex items-center justify-between text-xs">
                 <span className="text-muted-foreground">知识准备度</span>
-                <span className="font-mono">82%</span>
+                <span className="font-mono">{knowledgeReadiness}%</span>
               </div>
-              <Progress value={82} className="mt-2 h-1.5" />
+              <Progress value={knowledgeReadiness} className="mt-2 h-1.5" />
             </section>
 
             <section className="border bg-background p-4">
@@ -85,13 +98,16 @@ export default async function AiPage() {
               </div>
               <div className="mt-4 flex items-center justify-between">
                 <div>
-                  <p className="text-xs font-medium">OpenAI 兼容接口</p>
+                  <p className="text-xs font-medium">{ai.provider}</p>
                   <p className="mt-1 text-[11px] text-muted-foreground">
-                    未配置时自动使用演示模式
+                    {ai.model ?? "尚未配置模型 ID"}
                   </p>
                 </div>
-                <Badge variant="secondary" className="font-normal">
-                  可替换
+                <Badge
+                  variant={ai.configured ? "outline" : "secondary"}
+                  className="font-normal"
+                >
+                  {ai.configured ? "已连接" : "未配置"}
                 </Badge>
               </div>
               <div className="mt-4 flex items-center gap-2 border-t pt-4 text-xs text-muted-foreground">

@@ -40,7 +40,6 @@ export async function closeDatabase() {
 }
 
 export async function checkDatabaseConnection() {
-  if (!isDatabaseConfigured()) return null;
   await getDatabase().execute(sql`select 1`);
   return true;
 }

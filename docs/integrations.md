@@ -4,7 +4,7 @@
 
 系统使用 AI SDK 的 OpenAI Compatible Provider。管理员在“设置 → AI 配置”中保存 Base URL、API Key 和 Model ID，保存后立即生效。
 
-未配置时 `/api/ai/suggest` 自动进入演示模式，方便本地开发和界面验收。
+未配置时 `/api/ai/suggest` 返回 `503`，避免在生产环境把模拟内容误认为模型输出。
 
 火山引擎方舟、DeepSeek、通义千问和 Ollama 的完整样例参见 [大模型配置](model-configuration.md)。
 
@@ -17,7 +17,7 @@ npm run db:migrate
 npm run db:seed
 ```
 
-不设置 `DATABASE_URL` 时使用内存演示仓储，仅适合界面开发。Docker Compose 会自动启动数据库、执行迁移和种子脚本。
+`DATABASE_URL` 是必需配置。Docker Compose 会自动启动数据库、执行迁移和基础种子脚本；数据库不可用时服务不会回退到内存数据。
 
 ## Chatwoot
 

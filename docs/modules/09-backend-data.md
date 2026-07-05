@@ -8,7 +8,7 @@
 
 - `src/db/schema.ts`：表、枚举、索引和外键。
 - `src/db/client.ts`：延迟初始化连接与探活。
-- `src/db/seed.ts`：本地演示种子。
+- `src/db/seed.ts`：可重复执行的基础数据种子。
 - `drizzle/`：版本化 SQL 迁移。
 - `src/lib/conversations`：仓储契约和实现。
 
